@@ -1,17 +1,13 @@
-# PathwayAnno
+# BioGraphia
 
-## System Requirements
-
-- Python 3.6 or higher
-- Node.js 18 or higher
-- npm or yarn package manager
+You can try BioGraphia on link. We disabled login for the demo version.
 
 ## Installation
 
 1. Clone the repository:
    ```
    git clone [repository-url]
-   cd PathwayAnno
+   cd BioGraphia
    ```
 
 2. Install Python dependencies:
@@ -26,28 +22,17 @@
 
 ## Running the Application
 
-The application can be started with a single command:
+After setting up the environment variables in .env file, the application can be started with a single command:
 
 ```
 python start.py
 ```
 
-This command will:
-1. Start the Flask backend server
-2. Start the Quasar frontend development server
+Run the application in standalone mode:
 
-### Backend
-
-- The backend is a Flask application located at `src/server/app.py`
-- It runs on `http://localhost:5000` by default
-- Provides REST API endpoints for paper analysis and data management
-
-### Frontend
-
-- The frontend is built with Quasar Framework (Vue.js)
-- It runs on `http://localhost:8888`
-
-# Start of Selection
-## License
+```
+python start.py --standalone
+```
+this will restore the data every 5 minutes
 
 This project is licensed under the Apache 2.0 License.
