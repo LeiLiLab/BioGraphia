@@ -1,0 +1,73 @@
+{
+  "context": [
+    {
+      "name": "tumor cell lines",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "Essential amino acids": [
+      "chemical compound",
+      "none"
+    ],
+    "L-glutamine": [
+      "chemical compound",
+      "high"
+    ],
+    "L-leucine": [
+      "chemical compound",
+      "none"
+    ],
+    "SLC1A5": [
+      "protein",
+      "none"
+    ],
+    "SLC7A5/SLC3A2": [
+      "protein",
+      "none"
+    ],
+    "autophagy": [
+      "biological process",
+      "none"
+    ],
+    "cell growth": [
+      "biological process",
+      "none"
+    ],
+    "mTOR": [
+      "protein",
+      "none"
+    ],
+    "translation": [
+      "biological process",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "mTOR",
+      "tail": "cell growth",
+      "label": "upregulate",
+      "text": "Amino acids are required for activation of the mammalian target of rapamycin (mTOR) kinase which regulates protein translation, cell growth, and autophagy."
+    },
+    {
+      "head": "mTOR",
+      "tail": "translation",
+      "label": "upregulate",
+      "text": "Amino acids are required for activation of the mammalian target of rapamycin (mTOR) kinase which regulates protein translation, cell growth, and autophagy."
+    },
+    {
+      "head": "hhh",
+      "tail": "hhh",
+      "label": "hhhh",
+      "text": ""
+    },
+    {
+      "head": "hh",
+      "tail": "hhh",
+      "label": "hh",
+      "text": ""
+    }
+  ],
+  "analysis": "Context:  \n• Name: \"tumor cell lines\"  \n• Type: disease  \n\nNodes:  \n1) SLC1A5 → protein, status = none  \n2) SLC7A5/SLC3A2 → protein, status = none  \n3) L-glutamine → chemical compound, status = high (in tumor cell lines)  \n4) L-leucine → chemical compound, status = none  \n5) Essential amino acids → chemical compound, status = none  \n6) mTOR → protein, status = none  \n7) autophagy → biological process, status = none  \n8) cell growth → biological process, status = none  \n9) translation → biological process, status = none  \n\nRegulatory Relationships (direct):  \n1) SLC1A5 transports L-glutamine  \n2) SLC7A5/SLC3A2 transports L-glutamine  \n3) SLC7A5/SLC3A2 transports L-leucine  \n4) L-glutamine activates mTOR  \n5) L-leucine activates mTOR  \n6) Essential amino acids activate mTOR  \n7) mTOR inhibits autophagy  \n8) mTOR upregulates cell growth  \n9) mTOR upregulates translation"
+}

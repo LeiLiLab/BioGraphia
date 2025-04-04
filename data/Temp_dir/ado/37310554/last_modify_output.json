@@ -1,0 +1,105 @@
+{
+  "context": [
+    {
+      "name": "arsenite-induced oxidative stress",
+      "type": "pathological/environmental stress"
+    }
+  ],
+  "entities": {
+    "Arsenite": [
+      "chemical compound",
+      "NULL"
+    ],
+    "N-acetylcysteine": [
+      "chemical compound",
+      "NULL"
+    ],
+    "N6-methyladenosine": [
+      "Epitranscriptomic modification",
+      "up"
+    ],
+    "YTH N6-methyladenosine RNA binding protein 2": [
+      "gene",
+      "NULL"
+    ],
+    "YTHDF2 phase separation": [
+      "biological process",
+      "up"
+    ],
+    "m6A demethylase": [
+      "protein",
+      "down"
+    ],
+    "m6A methylesterase": [
+      "protein",
+      "up"
+    ],
+    "oxidative stress": [
+      "biological process",
+      "up"
+    ]
+  },
+  "relations": [
+    {
+      "head": "Arsenite",
+      "tail": "oxidative stress",
+      "label": "upregulate",
+      "text": "We found that arsenite promoted oxidative stress and YTHDF2 phase separation in a concentration-dependent manner."
+    },
+    {
+      "head": "oxidative stress",
+      "tail": "YTHDF2 phase separation",
+      "label": "promote",
+      "text": "We found that arsenite promoted oxidative stress and YTHDF2 phase separation in a concentration-dependent manner."
+    },
+    {
+      "head": "N-acetylcysteine",
+      "tail": "oxidative stress",
+      "label": "downregulate",
+      "text": "In contrast, pretreatment with N-acetylcysteine significantly relieved arsenate-induced oxidative stress and inhibited YTHDF2 phase separation."
+    },
+    {
+      "head": "N-acetylcysteine",
+      "tail": "YTHDF2 phase separation",
+      "label": "inhibit",
+      "text": "In contrast, pretreatment with N-acetylcysteine significantly relieved arsenate-induced oxidative stress and inhibited YTHDF2 phase separation."
+    },
+    {
+      "head": "Arsenite",
+      "tail": "N6-methyladenosine",
+      "label": "upregulate",
+      "text": "As one of the key factors to YTHDF2 phase separation, N6-methyladenosine (m6A) levels in human keratinocytes were significantly increased after arsenite exposure."
+    },
+    {
+      "head": "N-acetylcysteine",
+      "tail": "N6-methyladenosine",
+      "label": "downregulate",
+      "text": "On the contrary, N-acetylcysteine mitigated the arsenite-induced increase of m6A and m6A methylesterase and the arsenite-induced decrease in m6A demethylase."
+    },
+    {
+      "head": "m6A methylesterase",
+      "tail": "N6-methyladenosine",
+      "label": "methylate",
+      "text": "As one of the key factors to YTHDF2 phase separation, N6-methyladenosine (m6A) levels in human keratinocytes were significantly increased after arsenite exposure, accompanied by upregulation of m6A methylesterase levels."
+    },
+    {
+      "head": "m6A demethylase",
+      "tail": "N6-methyladenosine",
+      "label": "remove",
+      "text": "As one of the key factors to YTHDF2 phase separation, N6-methyladenosine (m6A) levels in human keratinocytes were significantly increased after arsenite exposure, accompanied by downregulation of m6A demethylases levels."
+    },
+    {
+      "head": "YTH N6-methyladenosine RNA binding protein 2",
+      "tail": "N6-methyladenosine",
+      "label": "bind",
+      "text": "Collectively, our study firstly revealed that oxidative stress induced by arsenite plays an important role in YTHDF2 phase separation driven by m6A modification.",
+      "metaRelations": [
+        {
+          "label": "promote",
+          "target": "YTHDF2 phase separation"
+        }
+      ]
+    }
+  ],
+  "analysis": "Context:  \nBased on the abstract, the study specifically investigates how arsenite-induced oxidative stress modulates YTHDF2 phase separation. Because arsenite exposure (an environmental toxin) leads to oxidative stress in human keratinocytes, this constitutes a “pathological/environmental stress” context.\n\nNodes:  \n1. Arsenite → chemical compound  \n2. N-acetylcysteine → chemical compound  \n3. Oxidative stress → biological process/pathway  \n4. N6-methyladenosine → epitranscriptomic modification  \n5. m6A methylesterase → protein  \n6. m6A demethylase → protein  \n7. YTH N6-methyladenosine RNA binding protein 2 → gene (following the naming convention in the sample)  \n8. YTHDF2 phase separation → biological process/pathway  \n\nRegulatory Relationships (direct statements from the abstract):  \n1. Arsenite upregulates oxidative stress.  \n2. Oxidative stress promotes YTHDF2 phase separation.  \n3. N-acetylcysteine downregulates oxidative stress.  \n4. N-acetylcysteine inhibits YTHDF2 phase separation.  \n5. Arsenite upregulates N6-methyladenosine.  \n6. N-acetylcysteine downregulates N6-methyladenosine.  \n7. m6A methylesterase methylates N6-methyladenosine.  \n8. m6A demethylase removes N6-methyladenosine.  \n9. YTH N6-methyladenosine RNA binding protein 2 binds N6-methyladenosine (meta-relation: promotes YTHDF2 phase separation)."
+}

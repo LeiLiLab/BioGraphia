@@ -1,0 +1,121 @@
+{
+  "context": [
+    {
+      "name": "NULL",
+      "type": "Undefined/Generic"
+    }
+  ],
+  "entities": {
+    "elongation factor 2": [
+      "protein",
+      "none"
+    ],
+    "elongation factor 2 kinase": [
+      "protein",
+      "none"
+    ],
+    "insulin": [
+      "chemical compound",
+      "none"
+    ],
+    "insulin-like growth factor 1": [
+      "chemical compound",
+      "none"
+    ],
+    "mTOR": [
+      "protein",
+      "none"
+    ],
+    "p70 S6 kinase": [
+      "protein",
+      "none"
+    ],
+    "p90(RSK1)": [
+      "protein",
+      "none"
+    ],
+    "phosphoinositide-dependent kinase 1": [
+      "protein",
+      "none"
+    ],
+    "rapamycin": [
+      "chemical compound",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "p70 S6 kinase",
+      "tail": "elongation factor 2 kinase",
+      "label": "phosphorylate",
+      "text": "p70 S6 kinase (regulated via mTOR) and p90(RSK1) (activated by Erk), phosphorylate eEF2k at a conserved serine and inhibit its activity."
+    },
+    {
+      "head": "p90(RSK1)",
+      "tail": "elongation factor 2 kinase",
+      "label": "phosphorylate",
+      "text": "p70 S6 kinase (regulated via mTOR) and p90(RSK1) (activated by Erk), phosphorylate eEF2k at a conserved serine and inhibit its activity."
+    },
+    {
+      "head": "elongation factor 2 kinase",
+      "tail": "elongation factor 2",
+      "label": "phosphorylate",
+      "text": "Elongation factor 2 kinase (eEF2k) phosphorylates and inactivates eEF2."
+    },
+    {
+      "head": "insulin",
+      "tail": "elongation factor 2 kinase",
+      "label": "inactivate",
+      "text": "Insulin induces dephosphorylation of eEF2 and inactivation of eEF2 kinase."
+    },
+    {
+      "head": "rapamycin",
+      "tail": "mTOR",
+      "label": "inhibit",
+      "text": "These effects are blocked by rapamycin, which inhibits the mammalian target of rapamycin, mTOR."
+    },
+    {
+      "head": "phosphoinositide-dependent kinase 1",
+      "tail": "p70 S6 kinase",
+      "label": "activate",
+      "text": "PDK1 is required for activation of members of the AGC kinase family."
+    },
+    {
+      "head": "phosphoinositide-dependent kinase 1",
+      "tail": "p90(RSK1)",
+      "label": "activate",
+      "text": "PDK1 is required for activation of members of the AGC kinase family."
+    },
+    {
+      "head": "insulin-like growth factor 1",
+      "tail": "p70 S6 kinase",
+      "label": "activate",
+      "text": "In response to insulin-like growth factor 1, which activates p70 S6 kinase but not Erk, regulation of eEF2 is blocked by rapamycin."
+    },
+    {
+      "head": "insulin",
+      "tail": "elongation factor 2",
+      "label": "dephosphorylate",
+      "text": ""
+    },
+    {
+      "head": "mTOR",
+      "tail": "p70 S6 kinase",
+      "label": "regulate",
+      "text": ""
+    },
+    {
+      "head": "Erk",
+      "tail": "p90(RSK1)",
+      "label": "activate",
+      "text": ""
+    },
+    {
+      "head": "inhibitors of MEK/Erk signalling",
+      "tail": "Erk",
+      "label": "block",
+      "text": ""
+    }
+  ],
+  "analysis": "Context:\n\n• This study describes a general molecular mechanism without a specified disease model, specialized tissue, or pathological stress.  \n  ⇒ context = \"none\", context type = \"Undefined/Generic\"\n\n\nNodes:\n\n1. “elongation factor 2 kinase” (protein)  \n2. “elongation factor 2” (protein)  \n3. “p70 S6 kinase” (protein)  \n4. “p90(RSK1)” (protein)  \n5. “mTOR” (protein)  \n6. “rapamycin” (chemical compound)  \n7. “phosphoinositide-dependent kinase 1” (protein)  \n8. “insulin” (chemical compound)  \n9. “insulin-like growth factor 1” (chemical compound)\n\n\nRegulatory Relationships (directly stated in the abstract):\n\n1. p70 S6 kinase phosphorylates elongation factor 2 kinase → inhibits elongation factor 2 kinase  \n2. p90(RSK1) phosphorylates elongation factor 2 kinase → inhibits elongation factor 2 kinase  \n3. elongation factor 2 kinase phosphorylates elongation factor 2 → inactivates elongation factor 2  \n4. insulin inactivates elongation factor 2 kinase  \n5. rapamycin inhibits mTOR  \n6. phosphoinositide-dependent kinase 1 activates p70 S6 kinase  \n7. phosphoinositide-dependent kinase 1 activates p90(RSK1)  \n8. insulin-like growth factor 1 activates p70 S6 kinase  \n\n\nConstructed Pathway Graph (JSON Format):\n\n{\n  \"context\": [\n    {\n      \"name\": \"NULL\",\n      \"type\": \"Undefined/Generic\"\n    }\n  ],\n  \"entities\": {\n    \"elongation factor 2 kinase\": [\"protein\", \"none\"],\n    \"elongation factor 2\": [\"protein\", \"none\"],\n    \"p70 S6 kinase\": [\"protein\", \"none\"],\n    \"p90(RSK1)\": [\"protein\", \"none\"],\n    \"mTOR\": [\"protein\", \"none\"],\n    \"rapamycin\": [\"chemical compound\", \"none\"],\n    \"phosphoinositide-dependent kinase 1\": [\"protein\", \"none\"],\n    \"insulin\": [\"chemical compound\", \"none\"],\n    \"insulin-like growth factor 1\": [\"chemical compound\", \"none\"]\n  },\n  \"relations\": [\n    {\n      \"head\": \"p70 S6 kinase\",\n      \"tail\": \"elongation factor 2 kinase\",\n      \"label\": \"phosphorylate\",\n      \"metaRelations\": [\n        {\"relation\": \"inhibit\", \"target\": \"elongation factor 2 kinase\"}\n      ]\n    },\n    {\n      \"head\": \"p90(RSK1)\",\n      \"tail\": \"elongation factor 2 kinase\",\n      \"label\": \"phosphorylate\",\n      \"metaRelations\": [\n        {\"relation\": \"inhibit\", \"target\": \"elongation factor 2 kinase\"}\n      ]\n    },\n    {\n      \"head\": \"elongation factor 2 kinase\",\n      \"tail\": \"elongation factor 2\",\n      \"label\": \"phosphorylate\",\n      \"metaRelations\": [\n        {\"relation\": \"inactivate\", \"target\": \"elongation factor 2\"}\n      ]\n    },\n    {\n      \"head\": \"insulin\",\n      \"tail\": \"elongation factor 2 kinase\",\n      \"label\": \"inactivate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"rapamycin\",\n      \"tail\": \"mTOR\",\n      \"label\": \"inhibit\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"phosphoinositide-dependent kinase 1\",\n      \"tail\": \"p70 S6 kinase\",\n      \"label\": \"activate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"phosphoinositide-dependent kinase 1\",\n      \"tail\": \"p90(RSK1)\",\n      \"label\": \"activate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"insulin-like growth factor 1\",\n      \"tail\": \"p70 S6 kinase\",\n      \"label\": \"activate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    }\n  ]\n}"
+}

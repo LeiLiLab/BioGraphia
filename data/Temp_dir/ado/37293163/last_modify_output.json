@@ -1,0 +1,145 @@
+{
+  "context": [
+    {
+      "name": "pancreatic cancer",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "Erk": [
+      "protein",
+      "none"
+    ],
+    "FAK": [
+      "protein",
+      "none"
+    ],
+    "GTF2B": [
+      "protein",
+      "none"
+    ],
+    "IGF2BP3": [
+      "protein",
+      "none"
+    ],
+    "ITGA1": [
+      "protein",
+      "up"
+    ],
+    "Linc00662": [
+      "Gene/RNA",
+      "up"
+    ],
+    "METTL3": [
+      "protein",
+      "up"
+    ],
+    "focal adhesion": [
+      "biological process",
+      "none"
+    ],
+    "m6A": [
+      "Epitranscriptomic modification",
+      "none"
+    ],
+    "metastasis": [
+      "clinical phenotype",
+      "none"
+    ],
+    "pancreatic cancer": [
+      "disease",
+      "none"
+    ],
+    "tumor growth": [
+      "clinical phenotype",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "METTL3",
+      "tail": "m6A",
+      "label": "methylate",
+      "text": "METTL3 methylates m6A, increasing Linc00662.",
+      "metaRelations": [
+        {
+          "label": "increase",
+          "target": "Linc00662"
+        }
+      ]
+    },
+    {
+      "head": "m6A",
+      "tail": "Linc00662",
+      "label": "is on",
+      "text": "m6A is on Linc00662."
+    },
+    {
+      "head": "IGF2BP3",
+      "tail": "m6A",
+      "label": "bind",
+      "text": "IGF2BP3 binds m6A, increasing Linc00662 stability.",
+      "metaRelations": [
+        {
+          "label": "increase",
+          "target": "Linc00662"
+        }
+      ]
+    },
+    {
+      "head": "Linc00662",
+      "tail": "GTF2B",
+      "label": "recruit",
+      "text": "Linc00662 recruits GTF2B, activating ITGA1 transcription.",
+      "metaRelations": [
+        {
+          "label": "activate transcription",
+          "target": "ITGA1"
+        }
+      ]
+    },
+    {
+      "head": "ITGA1",
+      "tail": "FAK",
+      "label": "activate",
+      "text": "ITGA1 activates FAK."
+    },
+    {
+      "head": "FAK",
+      "tail": "Erk",
+      "label": "activate",
+      "text": "FAK activates Erk."
+    },
+    {
+      "head": "Erk",
+      "tail": "focal adhesion",
+      "label": "initiate",
+      "text": "Erk initiates focal adhesion formation."
+    },
+    {
+      "head": "focal adhesion",
+      "tail": "tumor growth",
+      "label": "promote",
+      "text": "focal adhesion promotes tumor growth."
+    },
+    {
+      "head": "focal adhesion",
+      "tail": "metastasis",
+      "label": "promote",
+      "text": "focal adhesion promotes metastasis."
+    },
+    {
+      "head": "Linc00662",
+      "tail": "tumor growth",
+      "label": "promote",
+      "text": "Linc00662 promotes tumor growth."
+    },
+    {
+      "head": "Linc00662",
+      "tail": "metastasis",
+      "label": "promote",
+      "text": "Linc00662 promotes metastasis."
+    }
+  ],
+  "analysis": "Context:  \n• Context name: \"pancreatic cancer\"  \n• Context type: disease  \n\nNodes:  \n1. METTL3 → type: protein, status: up (in pancreatic cancer)  \n2. Linc00662 → type: Gene/RNA, status: up (in pancreatic cancer)  \n3. IGF2BP3 → type: protein, status: none  \n4. N6-methyladenosine (m6A) → type: Epitranscriptomic modification, status: none  \n5. GTF2B → type: protein, status: none  \n6. ITGA1 → type: protein, status: up (in pancreatic cancer)  \n7. FAK → type: protein, status: none  \n8. Erk → type: protein, status: none  \n9. focal adhesion → type: biological process, status: none  \n10. tumor growth → type: clinical phenotype, status: none  \n11. metastasis → type: clinical phenotype, status: none  \n12. pancreatic cancer → type: disease, status: none  \n\nRegulatory Relationships (text form):  \n1. METTL3 methylates m6A, increasing Linc00662.  \n2. m6A is on Linc00662.  \n3. IGF2BP3 binds m6A, increasing Linc00662 stability.  \n4. Linc00662 recruits GTF2B, activating ITGA1 transcription.  \n5. ITGA1 activates FAK.  \n6. FAK activates Erk.  \n7. Erk initiates focal adhesion formation.  \n8. focal adhesion promotes tumor growth.  \n9. focal adhesion promotes metastasis.  \n10. Linc00662 promotes tumor growth.  \n11. Linc00662 promotes metastasis."
+}

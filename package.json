@@ -1,0 +1,54 @@
+{
+  "name": "quasar-project",
+  "version": "0.0.1",
+  "description": "BioGraphia - A Biological Data Management Platform",
+  "productName": "BioGraphia",
+  "author": "ZiQiYin <yzq3411825390@gmail.com>",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint -c ./eslint.config.js \"./src*/**/*.{ts,js,cjs,mjs,vue}\"",
+    "format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
+    "test": "echo \"No test specified\" && exit 0",
+    "dev": "quasar dev",
+    "build": "quasar build",
+    "postinstall": "quasar prepare"
+  },
+  "dependencies": {
+    "@quasar/extras": "^1.16.4",
+    "@vueuse/core": "^13.0.0",
+    "axios": "^1.2.1",
+    "cors": "^2.8.5",
+    "d3": "^7.9.0",
+    "quasar": "^2.16.0",
+    "sortablejs": "^1.15.6",
+    "vue": "^3.4.18",
+    "vue-draggable-next": "^2.2.1",
+    "vue-i18n": "^9.2.2",
+    "vue-router": "^4.0.12",
+    "vuedraggable": "^4.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.14.0",
+    "@intlify/unplugin-vue-i18n": "^2.0.0",
+    "@quasar/app-vite": "^2.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^20.5.9",
+    "@vue/eslint-config-prettier": "^10.1.0",
+    "@vue/eslint-config-typescript": "^14.1.3",
+    "autoprefixer": "^10.4.2",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.14.0",
+    "eslint-plugin-vue": "^9.30.0",
+    "globals": "^15.12.0",
+    "prettier": "^3.3.3",
+    "typescript": "~5.5.3",
+    "vite-plugin-checker": "^0.8.0",
+    "vue-tsc": "^2.0.29"
+  },
+  "engines": {
+    "node": "^28 || ^26 || ^24 || ^22 || ^20 || ^18",
+    "npm": ">= 6.13.4",
+    "yarn": ">= 1.21.1"
+  }
+}

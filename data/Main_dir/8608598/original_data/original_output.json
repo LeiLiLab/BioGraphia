@@ -1,0 +1,50 @@
+{
+  "context": [
+    {
+      "name": "viral disease",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "STAT1": [
+      "protein",
+      "none"
+    ],
+    "Interferon": [
+      "protein",
+      "none"
+    ],
+    "innate immunity": [
+      "biological process",
+      "none"
+    ],
+    "viral disease": [
+      "disease",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "Interferon",
+      "tail": "STAT1",
+      "label": "activate",
+      "metaRelations": [],
+      "text": "The STAT1 transcription factor is activated in response to many cytokines and growth factors."
+    },
+    {
+      "head": "STAT1",
+      "tail": "innate immunity",
+      "label": "upregulate",
+      "metaRelations": [],
+      "text": "STAT1 upregulates innate immunity."
+    },
+    {
+      "head": "STAT1",
+      "tail": "viral disease",
+      "label": "inhibit",
+      "metaRelations": [],
+      "text": "STAT1 inhibits viral disease."
+    }
+  ],
+  "analysis": "Context:  \n• Name: \"viral disease\"  \n• Type: \"disease\"  \n\nNodes:  \n1) STAT1 → protein  \n2) Interferon → protein  \n3) innate immunity → biological process/pathway  \n4) viral disease → disease  \n\nRegulatory relationships:  \n1) Interferon activates STAT1.  \n2) STAT1 upregulates innate immunity.  \n3) STAT1 inhibits viral disease."
+}

@@ -1,0 +1,46 @@
+{
+  "context": [
+    {
+      "name": "hyperoxia",
+      "type": "Pathological/Environmental Stress"
+    }
+  ],
+  "entities": {
+    "Stat-3": [
+      "protein",
+      "none"
+    ],
+    "Surfactant protein B": [
+      "protein",
+      "none"
+    ],
+    "Acute lung injury": [
+      "disease",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "Stat-3",
+      "tail": "Surfactant protein B",
+      "label": "upregulate",
+      "metaRelations": [],
+      "text": "Deletion of Stat-3 leads to decreased surfactant proteins in the lung."
+    },
+    {
+      "head": "Surfactant protein B",
+      "tail": "Acute lung injury",
+      "label": "inhibit",
+      "metaRelations": [],
+      "text": "Exogenous surfactant protein B ameliorates lung injury."
+    },
+    {
+      "head": "Stat-3",
+      "tail": "Acute lung injury",
+      "label": "inhibit",
+      "metaRelations": [],
+      "text": "Stat-3 deletion exacerbates lung injury under hyperoxia."
+    }
+  ],
+  "analysis": "Context:  \nBased on the abstract, the study investigates how Stat-3 in respiratory epithelial cells mediates resistance to hyperoxia‐induced lung injury. Hyperoxia is a pathogenic environmental stress condition (prolonged exposure to >95% oxygen) causing acute lung injury. Therefore, the context is “hyperoxia,” and the context type is “Pathological/Environmental Stress.”\n\nNodes (with types):  \n• Stat-3 → protein  \n• Surfactant protein B → protein  \n• Acute lung injury → disease  \n\nRegulatory Relationships (directly inferred from the abstract):  \n1. Stat-3 upregulates Surfactant protein B.  (Deletion of Stat-3 leads to decreased surfactant proteins in the lung.)  \n2. Surfactant protein B inhibits Acute lung injury.  (Exogenous surfactant protein B ameliorates lung injury.)  \n3. Stat-3 inhibits Acute lung injury.  (Stat-3 deletion exacerbates lung injury under hyperoxia.)"
+}

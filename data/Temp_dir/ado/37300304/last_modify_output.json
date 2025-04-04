@@ -1,0 +1,93 @@
+{
+  "context": [
+    {
+      "name": "ischemic stroke",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "Astragaloside IV": [
+      "chemical compound",
+      "NULL"
+    ],
+    "N6-methyladenosine": [
+      "Epitranscriptomic modification",
+      "up"
+    ],
+    "YTH N6-methyladenosine RNA-binding protein 3": [
+      "gene",
+      "NULL"
+    ],
+    "activation transcription factor 3": [
+      "gene",
+      "NULL"
+    ],
+    "acyl-CoA synthetase long-chain family member 4": [
+      "gene",
+      "NULL"
+    ],
+    "fat mass and obesity-associated": [
+      "gene",
+      "NULL"
+    ],
+    "ferroptosis": [
+      "biological process",
+      "NULL"
+    ],
+    "neuronal injury": [
+      "clinical phenotype",
+      "NULL"
+    ]
+  },
+  "relations": [
+    {
+      "head": "Astragaloside IV",
+      "tail": "activation transcription factor 3",
+      "label": "upregulate",
+      "text": "Overall, As-IV promoted the transcription of Fto by upregulating Atf3, resulting in decreased m6 A levels of Acsl4, thus, improving neuronal injury in IS by inhibiting ferroptosis."
+    },
+    {
+      "head": "activation transcription factor 3",
+      "tail": "fat mass and obesity-associated",
+      "label": "upregulate",
+      "text": "Overall, As-IV promoted the transcription of Fto by upregulating Atf3, resulting in decreased m6 A levels of Acsl4, thus, improving neuronal injury in IS by inhibiting ferroptosis."
+    },
+    {
+      "head": "fat mass and obesity-associated",
+      "tail": "N6-methyladenosine",
+      "label": "reduce",
+      "text": "Fto regulated the m6 A levels of Acsl4."
+    },
+    {
+      "head": "N6-methyladenosine",
+      "tail": "acyl-CoA synthetase long-chain family member 4",
+      "label": "is on",
+      "text": "Fto regulated the m6 A levels of Acsl4."
+    },
+    {
+      "head": "YTH N6-methyladenosine RNA-binding protein 3",
+      "tail": "N6-methyladenosine",
+      "label": "bind",
+      "text": "Ythdf3 bound to Acsl4, and modulated its levels through m6 A modification."
+    },
+    {
+      "head": "Astragaloside IV",
+      "tail": "ferroptosis",
+      "label": "inhibit",
+      "text": "Overall, As-IV promoted the transcription of Fto by upregulating Atf3, resulting in decreased m6 A levels of Acsl4, thus, improving neuronal injury in IS by inhibiting ferroptosis."
+    },
+    {
+      "head": "ferroptosis",
+      "tail": "neuronal injury",
+      "label": "cause",
+      "text": "Overall, As-IV promoted the transcription of Fto by upregulating Atf3, resulting in decreased m6 A levels of Acsl4, thus, improving neuronal injury in IS by inhibiting ferroptosis."
+    },
+    {
+      "head": "Astragaloside IV",
+      "tail": "neuronal injury",
+      "label": "reduce",
+      "text": "Overall, As-IV promoted the transcription of Fto by upregulating Atf3, resulting in decreased m6 A levels of Acsl4, thus, improving neuronal injury in IS by inhibiting ferroptosis."
+    }
+  ],
+  "analysis": "Context:  \n• The abstract explicitly investigates a molecular mechanism in the setting of ischemic stroke (IS), which is a clearly defined disease model.  \nTherefore, context = \"ischemic stroke\", context type = \"disease\".  \n\n────────────────────────────────────────────────────────\nNodes (with assigned types)  \n────────────────────────────────────────────────────────\n1) Astragaloside IV → chemical compound  \n2) activation transcription factor 3 (Atf3) → gene  \n3) fat mass and obesity-associated (FTO) → gene  \n4) N6-methyladenosine (m6A) → Epitranscriptomic modification  \n5) acyl-CoA synthetase long-chain family member 4 (Acsl4) → gene  \n6) YTH N6-methyladenosine RNA-binding protein 3 (Ythdf3) → gene  \n7) ferroptosis → biological process/pathway  \n8) neuronal injury → clinical phenotype  \n\nBecause m6A levels are explicitly stated to be elevated in the disease models (OGD/R, MCAO) and reduced by As-IV, we assign m6A a context-specific status = \"up\". All other nodes have no explicit up/down change stated under ischemic-stroke conditions, so their status = \"NULL\".  \n\n────────────────────────────────────────────────────────\nRegulatory Relationships (Direct)  \n────────────────────────────────────────────────────────\n• Astragaloside IV upregulates Atf3.  \n• Atf3 upregulates FTO.  \n• FTO reduces m6A on Acsl4 (meta-relation → decreases Acsl4).  \n• m6A is on Acsl4.  \n• Ythdf3 binds m6A (meta-relation → modulates Acsl4).  \n• Astragaloside IV inhibits ferroptosis.  \n• ferroptosis causes neuronal injury.  \n• Astragaloside IV reduces neuronal injury.  \n\n────────────────────────────────────────────────────────\nConstructed Pathway Graph (JSON)  \n────────────────────────────────────────────────────────\n{\n  \"context\": [\n    {\n      \"name\": \"ischemic stroke\",\n      \"type\": \"disease\"\n    }\n  ],\n  \"entities\": {\n    \"Astragaloside IV\": [\"chemical compound\", \"NULL\"],\n    \"activation transcription factor 3\": [\"gene\", \"NULL\"],\n    \"fat mass and obesity-associated\": [\"gene\", \"NULL\"],\n    \"N6-methyladenosine\": [\"Epitranscriptomic modification\", \"up\"],\n    \"acyl-CoA synthetase long-chain family member 4\": [\"gene\", \"NULL\"],\n    \"YTH N6-methyladenosine RNA-binding protein 3\": [\"gene\", \"NULL\"],\n    \"ferroptosis\": [\"biological process\", \"NULL\"],\n    \"neuronal injury\": [\"clinical phenotype\", \"NULL\"]\n  },\n  \"relations\": [\n    {\n      \"head\": \"Astragaloside IV\",\n      \"tail\": \"activation transcription factor 3\",\n      \"label\": \"upregulate\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"activation transcription factor 3\",\n      \"tail\": \"fat mass and obesity-associated\",\n      \"label\": \"upregulate\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"fat mass and obesity-associated\",\n      \"tail\": \"N6-methyladenosine\",\n      \"label\": \"reduce\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"decrease\",\n          \"target\": \"acyl-CoA synthetase long-chain family member 4\"\n        }\n      ]\n    },\n    {\n      \"head\": \"N6-methyladenosine\",\n      \"tail\": \"acyl-CoA synthetase long-chain family member 4\",\n      \"label\": \"is on\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"YTH N6-methyladenosine RNA-binding protein 3\",\n      \"tail\": \"N6-methyladenosine\",\n      \"label\": \"bind\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"modulate\",\n          \"target\": \"acyl-CoA synthetase long-chain family member 4\"\n        }\n      ]\n    },\n    {\n      \"head\": \"Astragaloside IV\",\n      \"tail\": \"ferroptosis\",\n      \"label\": \"inhibit\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"ferroptosis\",\n      \"tail\": \"neuronal injury\",\n      \"label\": \"cause\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"Astragaloside IV\",\n      \"tail\": \"neuronal injury\",\n      \"label\": \"reduce\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    }\n  ]\n}"
+}

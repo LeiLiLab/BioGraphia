@@ -1,0 +1,51 @@
+{
+  "context": [
+    {
+      "name": "NULL",
+      "type": "Undefined/Generic"
+    }
+  ],
+  "entities": {
+    "IFN-alpha-stimulated response elements": [
+      "nucleic acid",
+      "none"
+    ],
+    "ISGF3 alpha proteins": [
+      "protein",
+      "none"
+    ],
+    "Interferon alpha": [
+      "protein",
+      "none"
+    ],
+    "Interferon gamma": [
+      "protein",
+      "none"
+    ],
+    "transcription": [
+      "biological process",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "Interferon alpha",
+      "tail": "ISGF3 alpha proteins",
+      "label": "phosphorylate",
+      "text": "Treatment of cells with IFN-alpha caused these three proteins to be phosphorylated on tyrosine and to translocate to the cell nucleus where they stimulate transcription through binding to IFN-alpha-stimulated response elements in DNA."
+    },
+    {
+      "head": "Interferon gamma",
+      "tail": "ISGF3 alpha proteins",
+      "label": "phosphorylate",
+      "text": "IFN-gamma, which activates transcription through a different receptor and different DNA binding sites, also caused tyrosine phosphorylation of one of these proteins."
+    },
+    {
+      "head": "ISGF3 alpha proteins",
+      "tail": "IFN-alpha-stimulated response elements",
+      "label": "bind",
+      "text": "Treatment of cells with IFN-alpha caused these three proteins to be phosphorylated on tyrosine and to translocate to the cell nucleus where they stimulate transcription through binding to IFN-alpha-stimulated response elements in DNA."
+    }
+  ],
+  "analysis": "Context:  \n• Because the study describes a signaling mechanism without reference to any specific disease model, specialized primary cell/tissue, or pathological/environmental stress condition, the context is \"none,\" and the context type is \"Undefined/Generic.\"\n\nNodes:  \n1) Interferon alpha (protein)  \n2) Interferon gamma (protein)  \n3) ISGF3 alpha proteins (protein)  \n4) IFN-alpha-stimulated response elements (nucleic acid)  \n5) transcription (biological process)  \n\nAll node statuses = \"none\" (since context = none).\n\nRegulatory Relationships (as stated or directly implied in the abstract):  \n1) Interferon alpha phosphorylates ISGF3 alpha proteins, leading to their activation of transcription.  \n2) Interferon gamma also phosphorylates ISGF3 alpha proteins.  \n3) ISGF3 alpha proteins bind IFN-alpha-stimulated response elements and thereby activate transcription."
+}

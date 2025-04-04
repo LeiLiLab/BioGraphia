@@ -1,0 +1,93 @@
+{
+  "context": [
+    {
+      "name": "major depressive disorder",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "monoaminergic antidepressants": [
+      "Chemical Compound",
+      "none"
+    ],
+    "SNORD90": [
+      "Gene/RNA",
+      "up"
+    ],
+    "N6-methyladenosine": [
+      "Epitranscriptomic modification",
+      "none"
+    ],
+    "YTHDF2": [
+      "Gene/RNA",
+      "none"
+    ],
+    "NRG3": [
+      "Gene/RNA",
+      "none"
+    ],
+    "glutamatergic release": [
+      "Biological Process/Pathway",
+      "none"
+    ],
+    "antidepressive-like behaviors": [
+      "Clinical Phenotype",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "monoaminergic antidepressants",
+      "tail": "SNORD90",
+      "label": "upregulate",
+      "metaRelations": [],
+      "text": "Investigating different cohorts of depressed individuals treated with serotonergic and other monoaminergic antidepressants, we found that the expression of a small nucleolar RNA, SNORD90, was elevated following treatment response."
+    },
+    {
+      "head": "SNORD90",
+      "tail": "N6-methyladenosine",
+      "label": "add",
+      "metaRelations": [
+        {
+          "label": "decrease",
+          "target": "NRG3"
+        }
+      ],
+      "text": "We identified neuregulin 3 (NRG3) as one of the targets of SNORD90, which we show is regulated through the accumulation of N6-methyladenosine modifications leading to YTHDF2-mediated RNA decay."
+    },
+    {
+      "head": "N6-methyladenosine",
+      "tail": "NRG3",
+      "label": "is on",
+      "metaRelations": [],
+      "text": "We identified neuregulin 3 (NRG3) as one of the targets of SNORD90, which we show is regulated through the accumulation of N6-methyladenosine modifications leading to YTHDF2-mediated RNA decay."
+    },
+    {
+      "head": "YTHDF2",
+      "tail": "N6-methyladenosine",
+      "label": "bind",
+      "metaRelations": [
+        {
+          "label": "decay",
+          "target": "NRG3"
+        }
+      ],
+      "text": "We identified neuregulin 3 (NRG3) as one of the targets of SNORD90, which we show is regulated through the accumulation of N6-methyladenosine modifications leading to YTHDF2-mediated RNA decay."
+    },
+    {
+      "head": "NRG3",
+      "tail": "glutamatergic release",
+      "label": "downregulate",
+      "metaRelations": [],
+      "text": "We further demonstrate that a decrease in NRG3 expression resulted in increased glutamatergic release in the mouse ACC."
+    },
+    {
+      "head": "SNORD90",
+      "tail": "antidepressive-like behaviors",
+      "label": "promote",
+      "metaRelations": [],
+      "text": "When we increased Snord90 levels in the mouse anterior cingulate cortex (ACC), a brain region regulating mood responses, we observed antidepressive-like behaviors."
+    }
+  ],
+  "analysis": "Context: \nThe study explicitly investigates molecular events in depressed individuals treated with antidepressants. This is clearly linked to a disease state (major depressive disorder). Therefore, context = \"major depressive disorder\", context type = \"disease\".\n\nNodes (with types and context-specific status, if any): \n1. monoaminergic antidepressants → Chemical Compound, status = none  \n2. SNORD90 (small nucleolar RNA) → Gene/RNA, status = up (the abstract states SNORD90 is elevated following antidepressant treatment in depressed individuals)  \n3. N6-methyladenosine → Epitranscriptomic modification, status = none  \n4. YTHDF2 → Gene/RNA, status = none  \n5. NRG3 (neuregulin 3) → Gene/RNA, status = none  \n6. glutamatergic release → Biological Process/Pathway, status = none  \n7. antidepressive-like behaviors → Clinical Phenotype, status = none  \n\nRegulatory Relationships (direct only, with required meta-relations for m6A mechanisms):  \n1. monoaminergic antidepressants upregulate SNORD90  \n2. SNORD90 adds m6A with a downstream decrease of NRG3  \n3. m6A is on NRG3  \n4. YTHDF2 binds m6A with a downstream decay of NRG3  \n5. NRG3 downregulates glutamatergic release  \n6. SNORD90 promotes antidepressive-like behaviors  \n\nConstructed Pathway Graph (in JSON):\n\n{\n  \"context\": [\n    {\n      \"name\": \"major depressive disorder\",\n      \"type\": \"disease\"\n    }\n  ],\n  \"entities\": {\n    \"monoaminergic antidepressants\": [\"Chemical Compound\", \"none\"],\n    \"SNORD90\": [\"Gene/RNA\", \"up\"],\n    \"N6-methyladenosine\": [\"Epitranscriptomic modification\", \"none\"],\n    \"YTHDF2\": [\"Gene/RNA\", \"none\"],\n    \"NRG3\": [\"Gene/RNA\", \"none\"],\n    \"glutamatergic release\": [\"Biological Process/Pathway\", \"none\"],\n    \"antidepressive-like behaviors\": [\"Clinical Phenotype\", \"none\"]\n  },\n  \"relations\": [\n    {\n      \"head\": \"monoaminergic antidepressants\",\n      \"tail\": \"SNORD90\",\n      \"label\": \"upregulate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"SNORD90\",\n      \"tail\": \"N6-methyladenosine\",\n      \"label\": \"add\",\n      \"metaRelations\": [\n        {\"relation\": \"decrease\", \"target\": \"NRG3\"}\n      ]\n    },\n    {\n      \"head\": \"N6-methyladenosine\",\n      \"tail\": \"NRG3\",\n      \"label\": \"is on\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"YTHDF2\",\n      \"tail\": \"N6-methyladenosine\",\n      \"label\": \"bind\",\n      \"metaRelations\": [\n        {\"relation\": \"decay\", \"target\": \"NRG3\"}\n      ]\n    },\n    {\n      \"head\": \"NRG3\",\n      \"tail\": \"glutamatergic release\",\n      \"label\": \"downregulate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"SNORD90\",\n      \"tail\": \"antidepressive-like behaviors\",\n      \"label\": \"promote\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    }\n  ]\n}"
+}

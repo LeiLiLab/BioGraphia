@@ -1,0 +1,68 @@
+{
+    "context": [
+        {
+            "name": "cervical squamous cell carcinoma",
+            "type": "cancer"
+        }
+    ],
+    "entities": {
+          "fat mass and obesity-associated protein" : 
+          ["gene", "upregulated"],
+          "N6-methyladenosine" : 
+          ["RNA modification", "NULL"],
+          "beta-catenin" : 
+          ["protein", "NULL"],
+          "excision repair cross-complementation group 1" : 
+          ["gene", "NULL"],
+          "chemo-radiotherapy resistance" : 
+          ["treatment response", "NULL"], 
+          "survival" : 
+          ["clinical phenotype", "NULL"]
+            },
+    "relations": [
+                {
+                "head": "fat mass and obesity-associated protein",
+                "tail": "N6-methyladenosine",
+                "label": "reduce", 
+                "metaRelations": 
+                [{"relation": "upregulate", "target": "beta-catenin"}]
+            },
+                 {
+                "head": "N6-methyladenosine",
+                "tail": "beta-catenin",
+                "label": "is on", 
+                "metaRelations": 
+                [{"relation": "NULL", "target": "NULL"}]
+            },
+                 {
+                "head": "beta-catenin",
+                "tail": "excision repair cross-complementation group 1",
+                "label": "increase", 
+                "metaRelations": 
+                [{"relation": "NULL", "target" : "NULL"}]},
+                 {
+                "head": "excision repair cross-complementation group 1",
+                "tail": "chemo-radiotherapy resistance",
+                "label": "enhance", 
+                "metaRelations": 
+                [{"relation": "NULL", "target" : "NULL"}]},
+                 {
+                "head": "chemo-radiotherapy resistance",
+                "tail": "survival",
+                "label": "affect", 
+                "metaRelations": 
+                [{"relation": "NULL", "target" : "NULL"}]},
+                 {
+                "head": "fat mass and obesity-associated protein",
+                "tail": "chemo-radiotherapy resistance",
+                "label": "enhance", 
+                "metaRelations": 
+                [{"relation": "NULL", "target" : "NULL"}]},
+                 {
+                "head:": "fat mass and obesity-associated protein",
+                "tail": "chemo-radiotherapy resistance",
+                "label": "affect", 
+                "metaRelations": 
+                [{"relation": "NULL", "target" : "NULL"}]}
+                 ]
+    }

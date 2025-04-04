@@ -1,0 +1,303 @@
+{
+  "metadata": {
+    "last_update": "2025-03-28T20:23:18.586165",
+    "user_data_hashes": {
+      "ado": "39a9506fecf075c8ef67ae761a0698ae",
+      "Sumin": "b40b08d18c16a315532183dbe1531340"
+    }
+  },
+  "same_relations": [],
+  "different_relations": [
+    {
+      "head": "METTL3",
+      "label": "methylate",
+      "tail": "m6A",
+      "text": "Previous studies have indicated that METTL3-mediated N6-methyladenosine (m6A) modification is closely associated with PC progression and prognosis.",
+      "status": "undecided",
+      "users": [
+        "ado"
+      ],
+      "note": "ado\nNo evidence in this paper that METTL3 metylates the m6A site on Linc00662",
+      "metaRelations": []
+    },
+    {
+      "head": "m6A",
+      "label": "is on",
+      "tail": "Linc00662",
+      "text": "Four m6A motifs were identified in Linc00662, which maintained the stability of Linc00662 in an IGF2BP3-coupled manner and were closely associated with the pro-tumor properties of Linc00662 in vitro and in vivo",
+      "status": "undecided",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "IGF2BP3",
+      "label": "bind",
+      "tail": "m6A",
+      "text": "Four m6A motifs were identified in Linc00662, which maintained the stability of Linc00662 in an IGF2BP3-coupled manner and were closely associated with the pro-tumor properties of Linc00662 in vitro and in vivo",
+      "status": "undecided",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": [
+        {
+          "label": "increase",
+          "target": "Linc00662"
+        }
+      ]
+    },
+    {
+      "head": "Linc00662",
+      "label": "recruit",
+      "tail": "GTF2B",
+      "text": "ITGA1 was identified as a downstream gene regulated by Linc00662. Linc00662 recruites GTF2B to activate the transcription of ITGA1 in a m6A-dependent manner and initiates the formation of focal adhesions through the ITGA1-FAK-Erk pathway",
+      "status": "undecided",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": [
+        {
+          "label": "activate transcription",
+          "target": "ITGA1"
+        }
+      ]
+    },
+    {
+      "head": "ITGA1",
+      "label": "activate",
+      "tail": "FAK",
+      "text": "ITGA1 was identified as a downstream gene regulated by Linc00662. Linc00662 recruites GTF2B to activate the transcription of ITGA1 in a m6A-dependent manner and initiates the formation of focal adhesions through the ITGA1-FAK-Erk pathway",
+      "status": "undecided",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "FAK",
+      "label": "activate",
+      "tail": "Erk",
+      "text": "ITGA1 was identified as a downstream gene regulated by Linc00662. Linc00662 recruites GTF2B to activate the transcription of ITGA1 in a m6A-dependent manner and initiates the formation of focal adhesions through the ITGA1-FAK-Erk pathway",
+      "status": "undecided",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "focal adhesion",
+      "label": "promote",
+      "tail": "tumor growth",
+      "text": "The FAK inhibitor-Y15 obviously repressed tumor progression in Linc00662-overexpressing PC cells in vitro and in vivo",
+      "status": "undecided",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Linc00662",
+      "label": "promote",
+      "tail": "tumor growth",
+      "text": "Linc00662 was screened as a m6A-enriched RNA that promoted tumor growth and metastasis in PC cells and mouse models and was associated with poor clinical prognosis",
+      "status": "undecided",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Linc00662",
+      "label": "promote",
+      "tail": "metastasis",
+      "text": "Linc00662 was screened as a m6A-enriched RNA that promoted tumor growth and metastasis in PC cells and mouse models and was associated with poor clinical prognosis",
+      "status": "undecided",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "prostate cancer",
+      "label": "upregulate",
+      "tail": "METTL3",
+      "text": "In this study, we found that METTL3 was upregulated in PC tissues and cells and was associated with malignant tumor progression and poor progression-free survival in PC",
+      "status": "undecided",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "METTL3",
+      "label": "affect",
+      "tail": "survival",
+      "text": "In this study, we found that METTL3 was upregulated in PC tissues and cells and was associated with malignant tumor progression and poor progression-free survival in PC",
+      "status": "undecided",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "METTL3",
+      "label": "affect",
+      "tail": "tumor progression",
+      "text": "In this study, we found that METTL3 was upregulated in PC tissues and cells and was associated with malignant tumor progression and poor progression-free survival in PC",
+      "status": "undecided",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "METTL3",
+      "label": "methylate",
+      "tail": "m6A",
+      "text": "METTL3 methylates m6A, increasing Linc00662.",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "m6A",
+      "label": "is on",
+      "tail": "Linc00662",
+      "text": "m6A is on Linc00662.",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "IGF2BP3",
+      "label": "bind",
+      "tail": "m6A",
+      "text": "IGF2BP3 binds m6A, increasing Linc00662 stability.",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": [
+        {
+          "label": "stabilize",
+          "target": "Linc00662"
+        }
+      ]
+    },
+    {
+      "head": "Linc00662",
+      "label": "recruit",
+      "tail": "GTF2B",
+      "text": "Linc00662 recruits GTF2B, activating ITGA1 transcription.",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "ITGA1-FAK-ErK pathway",
+      "label": "initiate",
+      "tail": "focal adhesion",
+      "text": "Erk initiates focal adhesion formation.",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "focal adhesion",
+      "label": "promote",
+      "tail": "tumor growth",
+      "text": "focal adhesion promotes tumor growth.",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "focal adhesion",
+      "label": "promote",
+      "tail": "metastasis",
+      "text": "focal adhesion promotes metastasis.",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Linc00662",
+      "label": "promote",
+      "tail": "tumor growth",
+      "text": "Linc00662 promotes tumor growth.",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Linc00662",
+      "label": "promote",
+      "tail": "metastasis",
+      "text": "Linc00662 promotes metastasis.",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "GTF2B",
+      "label": "increase",
+      "tail": "ITGA1",
+      "text": "",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "ITGA1",
+      "label": "consist",
+      "tail": "ITGA1-FAK-ErK pathway",
+      "text": "",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    }
+  ]
+}

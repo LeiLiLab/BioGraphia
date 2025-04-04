@@ -1,0 +1,65 @@
+{
+  "context": [
+    {
+      "name": "psoriasis",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "IL17A": [
+      "Gene/RNA",
+      "up"
+    ],
+    "Alkbh5": [
+      "Gene/RNA",
+      "none"
+    ],
+    "Mettl3": [
+      "Gene/RNA",
+      "none"
+    ],
+    "N6-methyladenosine": [
+      "Epitranscriptomic modification",
+      "up"
+    ],
+    "CD4+ T cells": [
+      "Tissue/Cell Type",
+      "none"
+    ],
+    "psoriasis": [
+      "Disease",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "Mettl3",
+      "tail": "N6-methyladenosine",
+      "label": "methylate",
+      "metaRelations": [],
+      "text": "Intriguingly, this phenotype and inflammation were alleviated by the ablation of the m6 A methyltransferase Mettl3 in CD4+ T cells."
+    },
+    {
+      "head": "Alkbh5",
+      "tail": "N6-methyladenosine",
+      "label": "remove",
+      "metaRelations": [],
+      "text": "In the psoriasis mouse model, depletion of the RNA demethylase, Alkbh5, from CD4+ T cells promoted the psoriasis-like phenotype and inflammation."
+    },
+    {
+      "head": "N6-methyladenosine",
+      "tail": "IL17A",
+      "label": "is on",
+      "metaRelations": [],
+      "text": "Mechanistically, we found that the m6 A modification of IL17A mRNA increased the expression of IL-17A (an important pro-inflammatory factor in psoriasis) and promoted psoriasis."
+    },
+    {
+      "head": "IL17A",
+      "tail": "psoriasis",
+      "label": "promote",
+      "metaRelations": [],
+      "text": "Mechanistically, we found that the m6 A modification of IL17A mRNA increased the expression of IL-17A (an important pro-inflammatory factor in psoriasis) and promoted psoriasis."
+    }
+  ],
+  "analysis": "Context:  \n• Psoriasis (disease)\n\nNodes:  \n1) IL17A → Gene/RNA  \n2) Alkbh5 → Gene/RNA  \n3) Mettl3 → Gene/RNA  \n4) N6-methyladenosine → Epitranscriptomic modification  \n5) CD4+ T cells → Tissue/Cell Type  \n6) Psoriasis → Disease  \n\nRegulatory Relationships (direct):  \n1) Mettl3 methylates N6-methyladenosine (meta-effect: increases IL17A)  \n2) Alkbh5 removes N6-methyladenosine (meta-effect: decreases IL17A)  \n3) N6-methyladenosine is on IL17A  \n4) IL17A promotes Psoriasis"
+}

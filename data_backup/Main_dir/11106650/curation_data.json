@@ -1,0 +1,192 @@
+{
+  "metadata": {
+    "last_update": "2025-03-27T23:43:32.470794",
+    "user_data_hashes": {
+      "ado": "1723484845acc02e3d0a5bbf26f56d0e",
+      "Sumin": "1b62a61a1b592dc61a0819678cac89d9"
+    }
+  },
+  "same_relations": [
+    {
+      "head": "Interferon gamma",
+      "label": "downregulate",
+      "tail": "CCAAT/enhancer-binding alpha",
+      "text": "A 48-h exposure to IFN-gamma also resulted in a decrease of both CCAAT/enhancer-binding alpha and sterol regulatory element binding protein (SREBP-1) expression.",
+      "status": "accept",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Interferon gamma",
+      "label": "downregulate",
+      "tail": "Sterol regulatory element binding protein 1",
+      "text": "A 48-h exposure to IFN-gamma also resulted in a decrease of both CCAAT/enhancer-binding alpha and sterol regulatory element binding protein (SREBP-1) expression.",
+      "status": "accept",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Interferon gamma",
+      "label": "upregulate",
+      "tail": "STAT1",
+      "text": "In addition, exposure to IFN-gamma resulted in a substantial increase in STAT 1 expression.",
+      "status": "accept",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Interferon gamma",
+      "label": "upregulate",
+      "tail": "STAT3",
+      "text": "In addition, exposure to IFN-gamma resulted in a small increase in STAT 3 expression.",
+      "status": "accept",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Interferon gamma",
+      "label": "inhibit",
+      "tail": "insulin-sensitive glucose uptake",
+      "text": "IFN-gamma treatment of 3T3-L1 adipocytes (48-96 h) resulted in a substantial inhibition of insulin-sensitive glucose uptake.",
+      "status": "accept",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Interferon gamma",
+      "label": "induce",
+      "tail": "insulin resistance",
+      "text": "These data clearly demonstrate that IFN-gamma treatment results in the development of insulin resistance.",
+      "status": "accept",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    }
+  ],
+  "different_relations": [
+    {
+      "head": "Interferon gamma",
+      "label": "downregulate",
+      "tail": "Peroxisome proliferator-activated receptor gamma",
+      "text": "IFN-gamma treatment resulted in a rapid reduction of both peroxisome proliferator-activated receptor (PPAR) protein and mRNA.",
+      "status": "accept",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Interferon gamma",
+      "label": "affects",
+      "tail": "Immunological response",
+      "text": "Interferon-gamma (IFN-gamma) is known primarily for its roles in immunological responses but also has been shown to affect fat metabolism and adipocyte gene expression",
+      "status": "accept",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Interferon gamma",
+      "label": "affects",
+      "tail": "fat metabolism",
+      "text": "Interferon-gamma (IFN-gamma) is known primarily for its roles in immunological responses but also has been shown to affect fat metabolism and adipocyte gene expression",
+      "status": "accept",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Interferon gamma",
+      "label": "affects",
+      "tail": "adipocyte gene expression",
+      "text": "Interferon-gamma (IFN-gamma) is known primarily for its roles in immunological responses but also has been shown to affect fat metabolism and adipocyte gene expression",
+      "status": "reject",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Peroxisome proliferator-activated receptor gamma",
+      "label": "degraded by",
+      "tail": "proteasome",
+      "text": "Our studies clearly demonstrated that the IFN-gamma-induced loss of PPARgamma protein is partially inhibited in the presence of two distinct proteasome inhibitors",
+      "status": "reject",
+      "users": [
+        "ado"
+      ],
+      "note": "ado\nThis may be too basic to include?",
+      "metaRelations": []
+    },
+    {
+      "head": "Interferon gamma",
+      "label": "downregulate",
+      "tail": "Peroxisome proliferator-activated receptor gamma protein",
+      "text": "IFN-gamma treatment resulted in a rapid reduction of both peroxisome proliferator-activated receptor (PPAR) protein and mRNA.",
+      "status": "reject",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Interferon gamma",
+      "label": "regulate",
+      "tail": "adipocyte transcription factor",
+      "text": "",
+      "status": "accept",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Interferon gamma",
+      "label": "inhibit",
+      "tail": "Peroxisome proliferator-activated receptor gamma",
+      "text": "",
+      "status": "reject",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": [
+        {
+          "label": "decrease",
+          "target": "Peroxisome proliferator-activated receptor gamma mRNA"
+        }
+      ]
+    }
+  ]
+}

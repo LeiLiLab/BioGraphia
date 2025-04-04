@@ -1,0 +1,51 @@
+{
+  "context": [
+    {
+      "name": "Parkinson's disease",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "METTL14": [
+      "gene",
+      "down"
+    ],
+    "METTL3": [
+      "gene",
+      "down"
+    ],
+    "N6-methyladenosine": [
+      "Epitranscriptomic modification",
+      "down"
+    ],
+    "YTHDF2": [
+      "gene",
+      "down"
+    ],
+    "alpha-synuclein": [
+      "protein",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "METTL14",
+      "tail": "N6-methyladenosine",
+      "label": "methylate",
+      "text": "Overexpression of Mettl14 dramatically increased m6 A modification of α-syn mRNA and weakened its stability."
+    },
+    {
+      "head": "N6-methyladenosine",
+      "tail": "alpha-synuclein",
+      "label": "is on",
+      "text": "α-syn mRNA was modified by Mettl14 binding of an m6 A motif in the coding region of α-syn mRNA."
+    },
+    {
+      "head": "YTHDF2",
+      "tail": "N6-methyladenosine",
+      "label": "bind",
+      "text": "Ythdf2 was involved in recognizing m6 A-modified α-syn mRNA."
+    }
+  ],
+  "analysis": "Context:  \nThe abstract explicitly investigates α-synuclein regulation via METTL14-mediated m6A modification in Parkinson’s disease (PD); thus, the context is “Parkinson’s disease,” context type = “disease.”\n\nNodes (with context-specific status):  \n• METTL14 → gene, down (explicitly decreased in PD)  \n• METTL3 → gene, down (explicitly decreased in PD)  \n• YTHDF2 → gene, down (explicitly decreased in PD)  \n• N6-methyladenosine (m6A) → epitranscriptomic modification, down (overall m6A levels decreased in PD)  \n• α-synuclein → protein, none (no explicit statement that α-syn is up/down in PD, so status = none)  \n\nRegulatory Relationships (direct statements in the abstract):  \n1) METTL14 methylates m6A, leading to decreased α-synuclein (weakened mRNA stability).  \n2) m6A is on α-synuclein.  \n3) YTHDF2 binds m6A, causing decreased α-synuclein (decay of α-syn transcripts)."
+}

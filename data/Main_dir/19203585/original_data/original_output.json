@@ -1,0 +1,112 @@
+{
+  "context": [
+    {
+      "name": "tumor cell lines",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "SLC1A5": [
+      "protein",
+      "none"
+    ],
+    "SLC7A5/SLC3A2": [
+      "protein",
+      "none"
+    ],
+    "L-glutamine": [
+      "chemical compound",
+      "high"
+    ],
+    "L-leucine": [
+      "chemical compound",
+      "none"
+    ],
+    "Essential amino acids": [
+      "chemical compound",
+      "none"
+    ],
+    "mTOR": [
+      "protein",
+      "none"
+    ],
+    "autophagy": [
+      "biological process",
+      "none"
+    ],
+    "cell growth": [
+      "biological process",
+      "none"
+    ],
+    "translation": [
+      "biological process",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "SLC1A5",
+      "tail": "L-glutamine",
+      "label": "transport",
+      "metaRelations": [],
+      "text": "L-glutamine uptake is regulated by SLC1A5 and loss of SLC1A5 function inhibits cell growth and activates autophagy."
+    },
+    {
+      "head": "SLC7A5/SLC3A2",
+      "tail": "L-glutamine",
+      "label": "transport",
+      "metaRelations": [],
+      "text": "The molecular basis for L-glutamine sensitivity is due to SLC7A5/SLC3A2, a bidirectional transporter that regulates the simultaneous efflux of L-glutamine out of cells and transport of L-leucine/EAA into cells."
+    },
+    {
+      "head": "SLC7A5/SLC3A2",
+      "tail": "L-leucine",
+      "label": "transport",
+      "metaRelations": [],
+      "text": "The molecular basis for L-glutamine sensitivity is due to SLC7A5/SLC3A2, a bidirectional transporter that regulates the simultaneous efflux of L-glutamine out of cells and transport of L-leucine/EAA into cells."
+    },
+    {
+      "head": "L-glutamine",
+      "tail": "mTOR",
+      "label": "activate",
+      "metaRelations": [],
+      "text": "We show that cellular uptake of L-glutamine and its subsequent rapid efflux in the presence of essential amino acids (EAA) is the rate-limiting step that activates mTOR."
+    },
+    {
+      "head": "L-leucine",
+      "tail": "mTOR",
+      "label": "activate",
+      "metaRelations": [],
+      "text": "The molecular basis for L-glutamine sensitivity is due to SLC7A5/SLC3A2, a bidirectional transporter that regulates the simultaneous efflux of L-glutamine out of cells and transport of L-leucine/EAA into cells."
+    },
+    {
+      "head": "Essential amino acids",
+      "tail": "mTOR",
+      "label": "activate",
+      "metaRelations": [],
+      "text": "We show that cellular uptake of L-glutamine and its subsequent rapid efflux in the presence of essential amino acids (EAA) is the rate-limiting step that activates mTOR."
+    },
+    {
+      "head": "mTOR",
+      "tail": "autophagy",
+      "label": "inhibit",
+      "metaRelations": [],
+      "text": "Amino acids are required for activation of the mammalian target of rapamycin (mTOR) kinase which regulates protein translation, cell growth, and autophagy."
+    },
+    {
+      "head": "mTOR",
+      "tail": "cell growth",
+      "label": "upregulate",
+      "metaRelations": [],
+      "text": "Amino acids are required for activation of the mammalian target of rapamycin (mTOR) kinase which regulates protein translation, cell growth, and autophagy."
+    },
+    {
+      "head": "mTOR",
+      "tail": "translation",
+      "label": "upregulate",
+      "metaRelations": [],
+      "text": "Amino acids are required for activation of the mammalian target of rapamycin (mTOR) kinase which regulates protein translation, cell growth, and autophagy."
+    }
+  ],
+  "analysis": "Context:  \n• Name: \"tumor cell lines\"  \n• Type: disease  \n\nNodes:  \n1) SLC1A5 → protein, status = none  \n2) SLC7A5/SLC3A2 → protein, status = none  \n3) L-glutamine → chemical compound, status = high (in tumor cell lines)  \n4) L-leucine → chemical compound, status = none  \n5) Essential amino acids → chemical compound, status = none  \n6) mTOR → protein, status = none  \n7) autophagy → biological process, status = none  \n8) cell growth → biological process, status = none  \n9) translation → biological process, status = none  \n\nRegulatory Relationships (direct):  \n1) SLC1A5 transports L-glutamine  \n2) SLC7A5/SLC3A2 transports L-glutamine  \n3) SLC7A5/SLC3A2 transports L-leucine  \n4) L-glutamine activates mTOR  \n5) L-leucine activates mTOR  \n6) Essential amino acids activate mTOR  \n7) mTOR inhibits autophagy  \n8) mTOR upregulates cell growth  \n9) mTOR upregulates translation"
+}

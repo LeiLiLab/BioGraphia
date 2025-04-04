@@ -1,0 +1,96 @@
+{
+  "context": [
+    {
+      "name": "bladder cancer",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "PD1hi CD200hi CD4+ exhausted T cell": [
+      "Tissue/Cell Type",
+      "up"
+    ],
+    "B cell": [
+      "Tissue/Cell Type",
+      "none"
+    ],
+    "GAS6": [
+      "protein",
+      "up"
+    ],
+    "AXL": [
+      "protein",
+      "none"
+    ],
+    "METTL3": [
+      "gene",
+      "none"
+    ],
+    "m6A": [
+      "Epitranscriptomic modification",
+      "none"
+    ],
+    "epithelial-mesenchymal transition": [
+      "biological process",
+      "none"
+    ],
+    "angiogenesis": [
+      "biological process",
+      "none"
+    ],
+    "immunotherapy resistance": [
+      "clinical phenotype",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "PD1hi CD200hi CD4+ exhausted T cell",
+      "tail": "epithelial-mesenchymal transition",
+      "label": "promote",
+      "metaRelations": [],
+      "text": "Cell function analysis demonstrated that PD1hi CD200hi CD4+ exhausted T cell can promote epithelial-mesenchymal transition (EMT) and angiogenesis in BLCA cells."
+    },
+    {
+      "head": "PD1hi CD200hi CD4+ exhausted T cell",
+      "tail": "angiogenesis",
+      "label": "promote",
+      "metaRelations": [],
+      "text": "Cell function analysis demonstrated that PD1hi CD200hi CD4+ exhausted T cell can promote epithelial-mesenchymal transition (EMT) and angiogenesis in BLCA cells."
+    },
+    {
+      "head": "PD1hi CD200hi CD4+ exhausted T cell",
+      "tail": "immunotherapy resistance",
+      "label": "promote",
+      "metaRelations": [],
+      "text": "Moreover, BLCA patients with a high level of PD1hi CD200hi CD4+ exhausted T cell showed immunotherapy resistance."
+    },
+    {
+      "head": "GAS6",
+      "tail": "AXL",
+      "label": "bind",
+      "metaRelations": [],
+      "text": "PD1hi CD200hi CD4+ exhausted T cells were shown to communicate with malignant BLCA cells through the GAS6-AXL axis."
+    },
+    {
+      "head": "METTL3",
+      "tail": "m6A",
+      "label": "methylate",
+      "metaRelations": [
+        {
+          "relation": "increase",
+          "target": "GAS6"
+        }
+      ],
+      "text": "Finally, we also found that GAS6 expression is upregulated in B cells by METTL3-mediated m6A modification."
+    },
+    {
+      "head": "m6A",
+      "tail": "GAS6",
+      "label": "is on",
+      "metaRelations": [],
+      "text": "Finally, we also found that GAS6 expression is upregulated in B cells by METTL3-mediated m6A modification."
+    }
+  ],
+  "analysis": "Context:  \nThe study investigates the mechanism in bladder cancer (BLCA), which is an explicitly stated disease context.  \n• Context Name: bladder cancer  \n• Context Type: disease  \n\nNodes:  \n1) PD1hi CD200hi CD4+ exhausted T cell → Tissue/Cell Type (up in bladder cancer)  \n2) B cell → Tissue/Cell Type (none)  \n3) GAS6 → Protein (up in bladder cancer)  \n4) AXL → Protein (none)  \n5) METTL3 → Gene (none)  \n6) N6-methyladenosine (m6A) → Epitranscriptomic modification (none)  \n7) epithelial-mesenchymal transition (EMT) → Biological Process (none)  \n8) angiogenesis → Biological Process (none)  \n9) immunotherapy resistance → Clinical Phenotype (none)  \n\nRegulatory Relationships (directly stated in the abstract):  \n1) PD1hi CD200hi CD4+ exhausted T cell promotes epithelial-mesenchymal transition.  \n2) PD1hi CD200hi CD4+ exhausted T cell promotes angiogenesis.  \n3) PD1hi CD200hi CD4+ exhausted T cell promotes immunotherapy resistance.  \n4) GAS6 binds AXL.  \n5) METTL3 methylates m6A; via a meta-relation, this increases GAS6.  \n6) m6A is on GAS6."
+}

@@ -1,0 +1,105 @@
+{
+  "context": [
+    {
+      "name": "pulmonary fibrosis",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "ALKBH5": [
+      "gene",
+      "down"
+    ],
+    "Atg13": [
+      "protein",
+      "none"
+    ],
+    "N6-methyladenosine": [
+      "Epitranscriptomic modification",
+      "none"
+    ],
+    "PM2.5": [
+      "chemical compound",
+      "none"
+    ],
+    "ULK complex": [
+      "protein",
+      "none"
+    ],
+    "autophagy": [
+      "biological process/pathway",
+      "none"
+    ],
+    "inflammation": [
+      "biological process/pathway",
+      "none"
+    ],
+    "pulmonary fibrosis": [
+      "disease",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "PM2.5",
+      "tail": "ALKBH5",
+      "label": "downregulate",
+      "text": "PM2.5-downregulated ALKBH5 protein expression promotes m6A modification of Atg13 mRNA at site 767 in lung epithelial cells."
+    },
+    {
+      "head": "ALKBH5",
+      "tail": "N6-methyladenosine",
+      "label": "reduce",
+      "text": "PM2.5-downregulated ALKBH5 protein expression promotes m6A modification of Atg13 mRNA at site 767 in lung epithelial cells.",
+      "metaRelations": [
+        {
+          "label": "decrease",
+          "target": "Atg13"
+        }
+      ]
+    },
+    {
+      "head": "N6-methyladenosine",
+      "tail": "Atg13",
+      "label": "is on",
+      "text": "PM2.5-downregulated ALKBH5 protein expression promotes m6A modification of Atg13 mRNA at site 767 in lung epithelial cells."
+    },
+    {
+      "head": "Atg13",
+      "tail": "ULK complex",
+      "label": "form",
+      "text": "Atg13-mediated ULK complex positively regulated autophagy and inflammation in epithelial cells with PM2.5 treatment."
+    },
+    {
+      "head": "ULK complex",
+      "tail": "autophagy",
+      "label": "upregulate",
+      "text": "Atg13-mediated ULK complex positively regulated autophagy and inflammation in epithelial cells with PM2.5 treatment."
+    },
+    {
+      "head": "ULK complex",
+      "tail": "inflammation",
+      "label": "upregulate",
+      "text": "Atg13-mediated ULK complex positively regulated autophagy and inflammation in epithelial cells with PM2.5 treatment."
+    },
+    {
+      "head": "PM2.5",
+      "tail": "autophagy",
+      "label": "upregulate",
+      "text": "PM2.5 exposure induced autophagy in lung epithelial cells and then drove pulmonary fibrosis by activation of NF-κB/NLRP3 signaling pathway."
+    },
+    {
+      "head": "PM2.5",
+      "tail": "pulmonary fibrosis",
+      "label": "affect",
+      "text": "Fine particulate matters (PM2.5) increased the risk of pulmonary fibrosis"
+    },
+    {
+      "head": "PM2.5",
+      "tail": "NF-kB/NLRP3",
+      "label": "activate",
+      "text": "PM2.5 exposure induced autophagy in lung epithelial cells and then drove pulmonary fibrosis by activation of NF-κB/NLRP3 signaling pathway"
+    }
+  ],
+  "analysis": "Context:  \nThe study is explicitly conducted in a PM2.5‐exposed animal/cell model of pulmonary fibrosis, therefore the context is “pulmonary fibrosis,” and the context type is “disease.”\n\nNodes:  \n1) PM2.5 → chemical compound  \n2) ALKBH5 → gene  \n3) N6-methyladenosine → epitranscriptomic modification  \n4) Atg13 → protein  \n5) ULK complex → protein  \n6) autophagy → biological process/pathway  \n7) inflammation → biological process/pathway  \n8) pulmonary fibrosis → disease  \n\nRegulatory relationships (directly stated/supported by the abstract):  \n• PM2.5 downregulates ALKBH5  \n• ALKBH5 reduces N6-methyladenosine (with a secondary effect decreasing Atg13)  \n• N6-methyladenosine is on Atg13  \n• Atg13 forms ULK complex  \n• ULK complex upregulates autophagy  \n• ULK complex upregulates inflammation  \n• Inflammation promotes pulmonary fibrosis  \n• PM2.5 upregulates autophagy  \n\nConstructed Pathway Graph:\n\n{\n  \"context\": [\n    {\n      \"name\": \"pulmonary fibrosis\",\n      \"type\": \"disease\"\n    }\n  ],\n  \"entities\": {\n    \"PM2.5\": [\"chemical compound\", \"none\"],\n    \"ALKBH5\": [\"gene\", \"down\"],\n    \"N6-methyladenosine\": [\"Epitranscriptomic modification\", \"none\"],\n    \"Atg13\": [\"protein\", \"none\"],\n    \"ULK complex\": [\"protein\", \"none\"],\n    \"autophagy\": [\"biological process/pathway\", \"none\"],\n    \"inflammation\": [\"biological process/pathway\", \"none\"],\n    \"pulmonary fibrosis\": [\"disease\", \"none\"]\n  },\n  \"relations\": [\n    {\n      \"head\": \"PM2.5\",\n      \"tail\": \"ALKBH5\",\n      \"label\": \"downregulate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"ALKBH5\",\n      \"tail\": \"N6-methyladenosine\",\n      \"label\": \"reduce\",\n      \"metaRelations\": [\n        {\"relation\": \"decrease\", \"target\": \"Atg13\"}\n      ]\n    },\n    {\n      \"head\": \"N6-methyladenosine\",\n      \"tail\": \"Atg13\",\n      \"label\": \"is on\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"Atg13\",\n      \"tail\": \"ULK complex\",\n      \"label\": \"form\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"ULK complex\",\n      \"tail\": \"autophagy\",\n      \"label\": \"upregulate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"ULK complex\",\n      \"tail\": \"inflammation\",\n      \"label\": \"upregulate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"inflammation\",\n      \"tail\": \"pulmonary fibrosis\",\n      \"label\": \"promote\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"PM2.5\",\n      \"tail\": \"autophagy\",\n      \"label\": \"upregulate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    }\n  ]\n}"
+}

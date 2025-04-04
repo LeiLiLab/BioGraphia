@@ -1,0 +1,73 @@
+{
+  "context": [
+    {
+      "name": "clear cell renal cell carcinoma",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "fat mass and obesity-associated protein": [
+      "gene",
+      "downregulated"
+    ],
+    "N6-methyladenosine": [
+      "RNA modification",
+      "NULL"
+    ],
+    "PGC-1alpha": [
+      "protein",
+      "NULL"
+    ],
+    "tumour growth": [
+      "clinical phenotype",
+      "NULL"
+    ],
+    "patient survival": [
+      "clinical phenotype",
+      "NULL"
+    ]
+  },
+  "relations": [
+    {
+      "head": "fat mass and obesity-associated protein",
+      "tail": "N6-methyladenosine",
+      "label": "reduce",
+      "metaRelations": [
+        {
+          "label": "increase",
+          "target": "PGC-1alpha"
+        }
+      ],
+      "text": "The Von Hippel-Lindau-deficient cells expressing FTO restores mitochondrial activity, induces oxidative stress and ROS production and shows impaired tumour growth, through increasing expression of PGC-1alpha by reducing m6A levels in its mRNA transcripts."
+    },
+    {
+      "head": "N6-methyladenosine",
+      "tail": "PGC-1alpha",
+      "label": "is on",
+      "metaRelations": [],
+      "text": "The Von Hippel-Lindau-deficient cells expressing FTO restores mitochondrial activity, induces oxidative stress and ROS production and shows impaired tumour growth, through increasing expression of PGC-1alpha by reducing m6A levels in its mRNA transcripts."
+    },
+    {
+      "head": "PGC-1alpha",
+      "tail": "tumour growth",
+      "label": "reduce",
+      "metaRelations": [],
+      "text": "The Von Hippel-Lindau-deficient cells expressing FTO restores mitochondrial activity, induces oxidative stress and ROS production and shows impaired tumour growth, through increasing expression of PGC-1alpha by reducing m6A levels in its mRNA transcripts."
+    },
+    {
+      "head": "tumour growth",
+      "tail": "patient survival",
+      "label": "reduce",
+      "metaRelations": [],
+      "text": "The low expression of FTO in human ccRCC correlates with increased tumour severity and poor patient survival."
+    },
+    {
+      "head": "fat mass and obesity-associated protein",
+      "tail": "patient survival",
+      "label": "increase",
+      "metaRelations": [],
+      "text": "The low expression of FTO in human ccRCC correlates with increased tumour severity and poor patient survival."
+    }
+  ],
+  "analysis": "Context:  \nBecause the molecular mechanism is explicitly linked to clear cell renal cell carcinoma (ccRCC), the context is “clear cell renal cell carcinoma,” and the context type is “disease.”\n\nNodes:  \n1) fat mass and obesity-associated protein (FTO): gene, downregulated in ccRCC  \n2) N6-methyladenosine (m6A): RNA modification, NULL  \n3) PGC-1alpha: protein, NULL  \n4) tumour growth: clinical phenotype, NULL  \n5) patient survival: clinical phenotype, NULL  \n\nRegulatory Relationships (Summarized):  \n• FTO reduces m6A, which leads to increased PGC-1alpha expression (meta-relation).  \n• m6A is on PGC-1alpha.  \n• PGC-1alpha reduces tumour growth.  \n• tumour growth reduces patient survival.  \n• FTO increases patient survival (inferred from low FTO correlating with poor survival)."
+}

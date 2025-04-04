@@ -1,0 +1,85 @@
+{
+  "context": [
+    {
+      "name": "NULL",
+      "type": "Undefined/Generic"
+    }
+  ],
+  "entities": {
+    "GATOR1": [
+      "protein",
+      "NULL"
+    ],
+    "GATOR2": [
+      "protein",
+      "NULL"
+    ],
+    "Rag GTPases": [
+      "protein",
+      "NULL"
+    ],
+    "Sestrins": [
+      "protein",
+      "NULL"
+    ],
+    "amino acids": [
+      "chemical compound",
+      "NULL"
+    ],
+    "mTORC1": [
+      "protein",
+      "NULL"
+    ]
+  },
+  "relations": [
+    {
+      "head": "Sestrins",
+      "tail": "GATOR2",
+      "label": "interact with",
+      "text": "Sestrins, a family of poorly understood growth regulators (Sestrin1-Sestrin3), interact with GATOR2 in an amino-acid-sensitive fashion."
+    },
+    {
+      "head": "GATOR2",
+      "tail": "mTORC1",
+      "label": "upregulate",
+      "text": "GATOR2 is a complex of unknown function that positively regulates mTORC1 signaling by acting upstream of or in parallel to GATOR1."
+    },
+    {
+      "head": "GATOR1",
+      "tail": "amino-acid-sensing pathway",
+      "label": "inhibit",
+      "text": "GATOR1, which is a GTPase-activating protein (GAP) for RagA or RagB and an inhibitor of the amino-acid-sensing pathway."
+    },
+    {
+      "head": "amino acid",
+      "tail": "mTORC1",
+      "label": "activate",
+      "text": "A key input is amino acids, which act through the heterodimeric Rag GTPases (RagA or RagB bound to RagC or RagD) in order to promote the translocation of mTORC1 to the lysosomal surface, its site of activation."
+    },
+    {
+      "head": "Sestrins",
+      "tail": "Rag GTPases",
+      "label": "interact with",
+      "text": "",
+      "metaRelations": [
+        {
+          "label": "inhibit",
+          "target": "mTORC1"
+        }
+      ]
+    },
+    {
+      "head": "Sestrins",
+      "tail": "GATOR1",
+      "label": "interact with",
+      "text": "",
+      "metaRelations": [
+        {
+          "label": "inhibit",
+          "target": "mTORC1"
+        }
+      ]
+    }
+  ],
+  "analysis": "Context:  \n• Name: none  \n• Type: Undefined/Generic  \n\nNodes:  \n1) Sestrins → protein  \n2) GATOR2 → protein  \n3) GATOR1 → protein  \n4) Rag GTPases → protein  \n5) mTORC1 → protein  \n6) amino acids → chemical compound  \n\nRegulatory relationships (directly stated in the abstract):  \n1) Sestrins bind GATOR2  \n2) GATOR2 upregulates mTORC1  \n3) GATOR1 inactivates Rag GTPases  \n4) Rag GTPases activate mTORC1  \n5) amino acids activate Rag GTPases"
+}

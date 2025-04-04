@@ -1,0 +1,70 @@
+{
+    "context": [
+      {
+        "name": "NULL",
+        "type": "General Biological Process"
+      }
+    ],
+    "entities": [
+      "Inflammation",
+      "Protein kinases",
+      "Tissue homeostasis",
+      "Blood flow",
+      "Immune-cell activation",
+      "Cytokines",
+      "Mediators",
+      "Small-molecule kinase inhibitors"
+    ],
+    "relations": [
+      {
+        "head": "Inflammation",
+        "tail": "Tissue homeostasis",
+        "label": "initiate",
+        "metaRelations": [],
+        "text": "Inflammation is an evolutionarily conserved host reaction that is initiated in response to trauma, tissue damage and infection. It leads to changes in tissue homeostasis."
+      },
+      {
+        "head": "Inflammation",
+        "tail": "Blood flow",
+        "label": "alter",
+        "metaRelations": [],
+        "text": "Inflammation leads to changes in blood flow."
+      },
+      {
+        "head": "Inflammation",
+        "tail": "Immune-cell activation",
+        "label": "activate",
+        "metaRelations": [],
+        "text": "Inflammation leads to immune-cell activation."
+      },
+      {
+        "head": "Inflammation",
+        "tail": "Cytokines",
+        "label": "induce",
+        "metaRelations": [],
+        "text": "Inflammation leads to secretion of cytokines."
+      },
+      {
+        "head": "Inflammation",
+        "tail": "Mediators",
+        "label": "induce",
+        "metaRelations": [],
+        "text": "Inflammation leads to secretion of mediators."
+      },
+      {
+        "head": "Protein kinases",
+        "tail": "Inflammation",
+        "label": "act as",
+        "metaRelations": [],
+        "text": "Progress in understanding of the mechanisms of the inflammatory response has identified various protein kinases that act as essential signalling components."
+      },
+      {
+        "head": "Small-molecule kinase inhibitors",
+        "tail": "Protein kinases",
+        "label": "target",
+        "metaRelations": [],
+        "text": "Small-molecule kinase inhibitors as a new generation of oral anti-inflammatory drugs target protein kinases."
+      }
+    ],
+    "analysis": "Context:\nThe abstract discusses the role of protein kinases in inflammation, which is a general biological process. There is no specific disease or stress-related condition mentioned, so the context is classified as \"NULL\" under general biological processes.\n(Context: \"NULL\", Type: \"General Biological Process\")\n\nNodes:\n1. Inflammation – Biological process, NULL status.\n2. Protein kinases – Protein, NULL status.\n3. Tissue homeostasis – Biological process, NULL status.\n4. Blood flow – Biological process, NULL status.\n5. Immune-cell activation – Biological process, NULL status.\n6. Cytokines – Chemical compound, NULL status.\n7. Mediators – Chemical compound, NULL status.\n8. Small-molecule kinase inhibitors – Medicine or drug, NULL status.\n\nRegulatory relationships:\n1. Inflammation initiates changes in tissue homeostasis.\n2. Inflammation alters blood flow.\n3. Inflammation activates immune cells.\n4. Inflammation induces secretion of cytokines.\n5. Inflammation induces secretion of mediators.\n6. Protein kinases act as essential signaling components in inflammation.\n7. Small-molecule kinase inhibitors target protein kinases.\n\nSummary of Regulatory Pathway:\nThe pathway describes how inflammation, as a biological process, leads to changes in tissue homeostasis, blood flow, immune-cell activation, and the secretion of cytokines and mediators. Protein kinases play a crucial role as signaling components in this process, making them potential targets for therapeutic intervention. Small-molecule kinase inhibitors are being developed to target these protein kinases as a new class of oral anti-inflammatory drugs.\n\nGraph Representation:\nNodes:\n- Inflammation – Biological process (NULL)\n- Protein kinases – Protein (NULL)\n- Tissue homeostasis – Biological process (NULL)\n- Blood flow – Biological process (NULL)\n- Immune-cell activation – Biological process (NULL)\n- Cytokines – Chemical compound (NULL)\n- Mediators – Chemical compound (NULL)\n- Small-molecule kinase inhibitors – Medicine or drug (NULL)\n\nEdges:\n- Inflammation → (initiate) Tissue homeostasis\n- Inflammation → (alter) Blood flow\n- Inflammation → (activate) Immune-cell activation\n- Inflammation → (induce) Cytokines\n- Inflammation → (induce) Mediators\n- Protein kinases → (act as) Essential signaling components in inflammation\n- Small-molecule kinase inhibitors → (target) Protein kinases"
+  }

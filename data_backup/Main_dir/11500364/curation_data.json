@@ -1,0 +1,271 @@
+{
+  "metadata": {
+    "last_update": "2025-03-27T23:41:28.682785",
+    "user_data_hashes": {
+      "ado": "9e24c081cb8fd836c610150e64a145cb",
+      "Sumin": "92d72b2470c0ff2fd32e101910f118e0"
+    }
+  },
+  "same_relations": [
+    {
+      "head": "p70 S6 kinase",
+      "label": "phosphorylate",
+      "tail": "elongation factor 2 kinase",
+      "text": "p70 S6 kinase (regulated via mTOR) and p90(RSK1) (activated by Erk), phosphorylate eEF2k at a conserved serine and inhibit its activity.",
+      "status": "accept",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "p90(RSK1)",
+      "label": "phosphorylate",
+      "tail": "elongation factor 2 kinase",
+      "text": "p70 S6 kinase (regulated via mTOR) and p90(RSK1) (activated by Erk), phosphorylate eEF2k at a conserved serine and inhibit its activity.",
+      "status": "accept",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "elongation factor 2 kinase",
+      "label": "phosphorylate",
+      "tail": "elongation factor 2",
+      "text": "Elongation factor 2 kinase (eEF2k) phosphorylates and inactivates eEF2.",
+      "status": "accept",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "insulin",
+      "label": "inactivate",
+      "tail": "elongation factor 2 kinase",
+      "text": "Insulin induces dephosphorylation of eEF2 and inactivation of eEF2 kinase.",
+      "status": "accept",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "rapamycin",
+      "label": "inhibit",
+      "tail": "mTOR",
+      "text": "These effects are blocked by rapamycin, which inhibits the mammalian target of rapamycin, mTOR.",
+      "status": "accept",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "ado\nThis might have a metarelation, rapamycin inhibits the ability for insulin to inactivate eEF2k",
+      "metaRelations": []
+    },
+    {
+      "head": "insulin-like growth factor 1",
+      "label": "activate",
+      "tail": "p70 S6 kinase",
+      "text": "In response to insulin-like growth factor 1, which activates p70 S6 kinase but not Erk, regulation of eEF2 is blocked by rapamycin.",
+      "status": "accept",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    }
+  ],
+  "different_relations": [
+    {
+      "head": "phosphoinositide-dependent kinase 1",
+      "label": "activate",
+      "tail": "p70 S6 kinase",
+      "text": "PDK1 is required for activation of members of the AGC kinase family; we show that two such kinases, p70 S6 kinase (regulated via mTOR) and p90(RSK1) (activated by Erk), phosphorylate eEF2k at a conserved serine and inhibit its activity",
+      "status": "accept",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "phosphoinositide-dependent kinase 1",
+      "label": "activate",
+      "tail": "p90(RSK1)",
+      "text": "PDK1 is required for activation of members of the AGC kinase family; we show that two such kinases, p70 S6 kinase (regulated via mTOR) and p90(RSK1) (activated by Erk), phosphorylate eEF2k at a conserved serine and inhibit its activity",
+      "status": "accept",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "elongation factor 2 kinase",
+      "label": "inhibit",
+      "tail": "elongation factor 2",
+      "text": "Elongation factor 2 kinase (eEF2k) phosphorylates and inactivates eEF2",
+      "status": "accept",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "elongation factor 2 kinase",
+      "label": "dependent on",
+      "tail": "phosphoinositide-dependent kinase 1",
+      "text": "Regulation of eEF2 phosphorylation and eEF2k activity is lost in cells in which phosphoinositide-dependent kinase 1 (PDK1) has been genetically knocked out",
+      "status": "accept",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "mTOR",
+      "label": "phosphorylate",
+      "tail": "initiation factor 4E-binding protein 1",
+      "text": "This is not due to loss of mTOR function since phosphorylation of another target of mTOR, initiation factor 4E-binding protein 1, is not defective",
+      "status": "reject",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "p70 S6 kinase",
+      "label": "phosphorylate",
+      "tail": "elongation factor 2 kinase",
+      "text": "PDK1 is required for activation of members of the AGC kinase family; we show that two such kinases, p70 S6 kinase (regulated via mTOR) and p90(RSK1) (activated by Erk), phosphorylate eEF2k at a conserved serine and inhibit its activity.",
+      "status": "accept",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "p90(RSK1)",
+      "label": "phosphorylate",
+      "tail": "elongation factor 2 kinase",
+      "text": "PDK1 is required for activation of members of the AGC kinase family; we show that two such kinases, p70 S6 kinase (regulated via mTOR) and p90(RSK1) (activated by Erk), phosphorylate eEF2k at a conserved serine and inhibit its activity.",
+      "status": "accept",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Erk",
+      "label": "activate",
+      "tail": "p90(RSK1)",
+      "text": "PDK1 is required for activation of members of the AGC kinase family; we show that two such kinases, p70 S6 kinase (regulated via mTOR) and p90(RSK1) (activated by Erk), phosphorylate eEF2k at a conserved serine and inhibit its activity",
+      "status": "accept",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "mTOR",
+      "label": "regulate",
+      "tail": "p70 S6 kinase",
+      "text": "PDK1 is required for activation of members of the AGC kinase family; we show that two such kinases, p70 S6 kinase (regulated via mTOR) and p90(RSK1) (activated by Erk), phosphorylate eEF2k at a conserved serine and inhibit its activity",
+      "status": "accept",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "phosphoinositide-dependent kinase 1",
+      "label": "activate",
+      "tail": "p70 S6 kinase",
+      "text": "PDK1 is required for activation of members of the AGC kinase family.",
+      "status": "reject",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "phosphoinositide-dependent kinase 1",
+      "label": "activate",
+      "tail": "p90(RSK1)",
+      "text": "PDK1 is required for activation of members of the AGC kinase family.",
+      "status": "reject",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "insulin",
+      "label": "dephosphorylate",
+      "tail": "elongation factor 2",
+      "text": "",
+      "status": "accept",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "mTOR",
+      "label": "regulate",
+      "tail": "p70 S6 kinase",
+      "text": "",
+      "status": "accept",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Erk",
+      "label": "activate",
+      "tail": "p90(RSK1)",
+      "text": "",
+      "status": "reject",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "inhibitors of MEK/Erk signalling",
+      "label": "block",
+      "tail": "Erk",
+      "text": "",
+      "status": "accept",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    }
+  ]
+}

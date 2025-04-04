@@ -1,0 +1,127 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 1400px;
+                 height: 800px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#1f78b4", "font": {"size": 16}, "id": "YTHDF2", "label": "YTHDF2", "shape": "dot", "size": 40}, {"color": "#1f78b4", "font": {"size": 16}, "id": "m6A", "label": "m6A", "shape": "dot", "size": 40}, {"color": "#1f78b4", "font": {"size": 16}, "id": "CCNA", "label": "CCNA", "shape": "dot", "size": 40}, {"color": "#1f78b4", "font": {"size": 16}, "id": "CDK2", "label": "CDK2", "shape": "dot", "size": 40}, {"color": "#1f78b4", "font": {"size": 16}, "id": "FTO", "label": "FTO", "shape": "dot", "size": 40}, {"color": "#1f78b4", "font": {"size": 16}, "id": "MCE", "label": "MCE", "shape": "dot", "size": 40}, {"color": "#1f78b4", "font": {"size": 16}, "id": "adipogenesis", "label": "adipogenesis", "shape": "dot", "size": 40}, {"color": "#1f78b4", "font": {"size": 16}, "id": "EGCG", "label": "EGCG", "shape": "dot", "size": 40}, {"color": "#1f78b4", "fixed": {"x": true, "y": true}, "font": {"color": "#1f78b4", "size": 14}, "id": "recognize_YTHDF2_m6A", "label": "recognize", "physics": false, "shape": "text", "size": 1}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": "#1f78b4", "from": "YTHDF2", "smooth": {"roundness": 0.2, "type": "continuous"}, "to": "m6A", "width": 2}, {"arrows": "to", "color": "#1f78b4", "from": "YTHDF2", "hidden": true, "length": 100, "physics": true, "smooth": false, "to": "recognize_YTHDF2_m6A", "width": 0.1}, {"arrows": "to", "color": "#1f78b4", "from": "recognize_YTHDF2_m6A", "hidden": true, "length": 100, "physics": true, "smooth": false, "to": "m6A", "width": 0.1}, {"arrows": "to", "color": "#ff4444", "dashes": true, "font": {"size": 14}, "from": "recognize_YTHDF2_m6A", "label": "downregulate", "smooth": {"roundness": 0.2, "type": "continuous"}, "title": "downregulate", "to": "CCNA", "width": 2}, {"arrows": "to", "color": "#ff4444", "dashes": true, "font": {"size": 14}, "from": "recognize_YTHDF2_m6A", "label": "downregulate", "smooth": {"roundness": 0.2, "type": "continuous"}, "title": "downregulate", "to": "CDK2", "width": 2}, {"arrows": "to", "color": "#1f78b4", "font": {"size": 14}, "from": "EGCG", "label": "upregulate", "smooth": {"roundness": 0.2, "type": "continuous"}, "title": "upregulate", "to": "YTHDF2", "width": 2}, {"arrows": "to", "color": "#1f78b4", "font": {"size": 14}, "from": "EGCG", "label": "downregulate", "smooth": {"roundness": 0.2, "type": "continuous"}, "title": "downregulate", "to": "FTO", "width": 2}, {"arrows": "to", "color": "#1f78b4", "font": {"size": 14}, "from": "FTO", "label": "decrease", "smooth": {"roundness": 0.2, "type": "continuous"}, "title": "decrease", "to": "m6A", "width": 2}, {"arrows": "to", "color": "#1f78b4", "font": {"size": 14}, "from": "CCNA", "label": "associated with", "smooth": {"roundness": 0.2, "type": "continuous"}, "title": "associated with", "to": "MCE", "width": 2}, {"arrows": "to", "color": "#1f78b4", "font": {"size": 14}, "from": "CDK2", "label": "associated with", "smooth": {"roundness": 0.2, "type": "continuous"}, "title": "associated with", "to": "MCE", "width": 2}, {"arrows": "to", "color": "#1f78b4", "font": {"size": 14}, "from": "MCE", "label": "associated with", "smooth": {"roundness": 0.2, "type": "continuous"}, "title": "associated with", "to": "adipogenesis", "width": 2}, {"arrows": "to", "color": "#1f78b4", "font": {"size": 14}, "from": "EGCG", "label": "inhibit", "smooth": {"roundness": 0.2, "type": "continuous"}, "title": "inhibit", "to": "MCE", "width": 2}, {"arrows": "to", "color": "#1f78b4", "font": {"size": 14}, "from": "EGCG", "label": "inhibit", "smooth": {"roundness": 0.2, "type": "continuous"}, "title": "inhibit", "to": "adipogenesis", "width": 2}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"enabled": true, "barnesHut": {"gravitationalConstant": -20000, "centralGravity": 0.1, "springLength": 150, "springConstant": 0.08, "damping": 0.09, "avoidOverlap": 0.5}, "minVelocity": 0.75, "maxVelocity": 50}, "nodes": {"font": {"size": 16, "face": "arial"}, "borderWidth": 2, "shape": "box", "fixed": false}, "edges": {"font": {"size": 14, "align": "middle"}, "smooth": {"enabled": true, "type": "continuous", "roundness": 0.2}, "arrows": {"to": {"enabled": true, "scaleFactor": 1}}}, "layout": {"randomSeed": 42, "improvedLayout": true, "hierarchical": {"enabled": false}}, "interaction": {"navigationButtons": true, "hover": true, "multiselect": true}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

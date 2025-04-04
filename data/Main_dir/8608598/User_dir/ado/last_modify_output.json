@@ -1,0 +1,65 @@
+{
+  "context": [
+    {
+      "name": "viral disease",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "Interferon": [
+      "protein",
+      "none"
+    ],
+    "STAT1": [
+      "protein",
+      "none"
+    ],
+    "innate immunity": [
+      "biological process",
+      "none"
+    ],
+    "viral disease": [
+      "disease",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "Cytokines",
+      "tail": "STAT1",
+      "label": "activate",
+      "text": "The STAT1 transcription factor is activated in response to many cytokines and growth factors."
+    },
+    {
+      "head": "STAT1",
+      "tail": "innate immunity",
+      "label": "upregulate",
+      "text": "STAT1 upregulates innate immunity."
+    },
+    {
+      "head": "STAT1",
+      "tail": "viral disease",
+      "label": "inhibit",
+      "text": "Stat1(-1-1) animals were born at normal frequencies and displayed no gross developmental defects. However, these animals failed to thrive and were extremely susceptible to viral disease"
+    },
+    {
+      "head": "Growth factors",
+      "tail": "STAT1",
+      "label": "activate",
+      "text": "The STAT1 transcription factor is activated in response to many cytokines and growth factors"
+    },
+    {
+      "head": "Interferon",
+      "tail": "STAT1",
+      "label": "activate",
+      "text": "Stat1(-1-)ES cells were unresponsive to interferon (IFN), but retained responsiveness to leukemia inhibitory factor (LIF) and remained LIF dependent for undifferentiated growth"
+    },
+    {
+      "head": "LIF",
+      "tail": "differentiation",
+      "label": "affect",
+      "text": "Stat1(-1-)ES cells were unresponsive to interferon (IFN), but retained responsiveness to leukemia inhibitory factor (LIF) and remained LIF dependent for undifferentiated growth"
+    }
+  ],
+  "analysis": "Context:  \n• Name: \"viral disease\"  \n• Type: \"disease\"  \n\nNodes:  \n1) STAT1 → protein  \n2) Interferon → protein  \n3) innate immunity → biological process/pathway  \n4) viral disease → disease  \n\nRegulatory relationships:  \n1) Interferon activates STAT1.  \n2) STAT1 upregulates innate immunity.  \n3) STAT1 inhibits viral disease."
+}

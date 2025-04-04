@@ -1,0 +1,92 @@
+{
+  "metadata": {
+    "last_update": "2025-03-27T23:18:28.309522",
+    "user_data_hashes": {
+      "ado": "3884c7e0b4ee2c367536f297c9356515",
+      "Sumin": "c27ba85f031c5e2280bd904caeed112f"
+    }
+  },
+  "same_relations": [
+    {
+      "head": "Interferon alpha",
+      "label": "phosphorylate",
+      "tail": "ISGF3 alpha proteins",
+      "text": "Treatment of cells with IFN-alpha caused these three proteins to be phosphorylated on tyrosine and to translocate to the cell nucleus where they stimulate transcription through binding to IFN-alpha-stimulated response elements in DNA.",
+      "status": "undecided",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "ado\nThe text does not specify if this is a direct or indirect interaction. I.e. does IFNa directly phosphorylate ISGF3 or does IFNa affect a different protein which then phosphorylates ISGF3.",
+      "metaRelations": []
+    },
+    {
+      "head": "Interferon gamma",
+      "label": "phosphorylate",
+      "tail": "ISGF3 alpha proteins",
+      "text": "IFN-gamma, which activates transcription through a different receptor and different DNA binding sites, also caused tyrosine phosphorylation of one of these proteins.",
+      "status": "undecided",
+      "users": [
+        "ado",
+        "Sumin"
+      ],
+      "note": "ado\nThe text does not specify if this is a direct or indirect interaction. I.e. does IFNa directly phosphorylate ISGF3 or does IFNa affect a different protein which then phosphorylates ISGF3.",
+      "metaRelations": []
+    }
+  ],
+  "different_relations": [
+    {
+      "head": "ISGF3 alpha proteins",
+      "label": "bind",
+      "tail": "IFN-alpha-stimulated response elements",
+      "text": "Treatment of cells with IFN-alpha caused these three proteins to be phosphorylated on tyrosine and to translocate to the cell nucleus where they stimulate transcription through binding to IFN-alpha-stimulated response elements in DNA.",
+      "status": "undecided",
+      "users": [
+        "ado"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "ISGF3 alpha proteins",
+      "label": "bind",
+      "tail": "IFN-alpha-stimulated response elements",
+      "text": "Treatment of cells with IFN-alpha caused these three proteins to be phosphorylated on tyrosine and to translocate to the cell nucleus where they stimulate transcription through binding to IFN-alpha-stimulated response elements in DNA.",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": [
+        {
+          "label": "stimulate",
+          "target": "transcription"
+        }
+      ]
+    },
+    {
+      "head": "ISGF3 alpha proteins",
+      "label": "form",
+      "tail": "ISGF3",
+      "text": "",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Interferon gamma",
+      "label": "activate",
+      "tail": "transcription",
+      "text": "",
+      "status": "undecided",
+      "users": [
+        "Sumin"
+      ],
+      "note": "",
+      "metaRelations": []
+    }
+  ]
+}

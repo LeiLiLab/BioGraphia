@@ -1,0 +1,73 @@
+{
+  "context": [
+    {
+      "name": "NULL",
+      "type": "Undefined/Generic"
+    }
+  ],
+  "entities": {
+    "Gtr1p(GTP)-Gtr2p(GDP) heterodimer": [
+      "protein",
+      "none"
+    ],
+    "Raptor": [
+      "protein",
+      "none"
+    ],
+    "TORC1": [
+      "protein",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "RagA",
+      "tail": "Rag GTPase",
+      "label": "form",
+      "text": ""
+    },
+    {
+      "head": "RagB",
+      "tail": "Rag GTPase",
+      "label": "form",
+      "text": ""
+    },
+    {
+      "head": "RagC",
+      "tail": "Rag GTPase",
+      "label": "form",
+      "text": ""
+    },
+    {
+      "head": "RagD",
+      "tail": "Rag GTPase",
+      "label": "form",
+      "text": ""
+    },
+    {
+      "head": "Rag GTPase",
+      "tail": "Raptor",
+      "label": "bind",
+      "text": "",
+      "metaRelations": [
+        {
+          "label": "activate",
+          "target": "TORC1"
+        }
+      ]
+    },
+    {
+      "head": "Rag GTPase",
+      "tail": "amino acid",
+      "label": "respose",
+      "text": "",
+      "metaRelations": [
+        {
+          "label": "activate",
+          "target": "TORC1"
+        }
+      ]
+    }
+  ],
+  "analysis": "Context:  \nSince this study focuses on the structural and mechanistic details of Rag/Gtr GTPases without mention of any specific disease model, specialized primary tissue/cells, or pathological/environmental stress, the context is “none” (Undefined/Generic).\n\n────────────────────────────────────────\nNodes (with type and status):\n1) Gtr1p(GTP)-Gtr2p(GDP) heterodimer → protein, none  \n2) Raptor → protein, none  \n3) TORC1 → protein, none  \n\nNo other nodes are explicitly required for the main regulatory mechanism described in the abstract.\n\n────────────────────────────────────────\nRegulatory Relationships (Direct):\n1) Gtr1p(GTP)-Gtr2p(GDP) heterodimer binds Raptor  \n2) Gtr1p(GTP)-Gtr2p(GDP) heterodimer activates TORC1  \n\n────────────────────────────────────────"
+}

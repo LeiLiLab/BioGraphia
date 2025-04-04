@@ -1,0 +1,81 @@
+{
+  "context": [
+    {
+      "name": "NULL",
+      "type": "Undefined/Generic"
+    }
+  ],
+  "entities": {
+    "G(0)/G1 growth arrest": [
+      "biological process",
+      "NULL"
+    ],
+    "Interleukin-6": [
+      "protein",
+      "NULL"
+    ],
+    "M1 leukemia cells": [
+      "experimental model",
+      "NULL"
+    ],
+    "Myb proto-oncogene": [
+      "Gene/RNA",
+      "NULL"
+    ],
+    "Myc proto-oncogene": [
+      "Gene/RNA",
+      "NULL"
+    ],
+    "Signal transducer and activator of transcription 3": [
+      "protein",
+      "NULL"
+    ],
+    "cell growth": [
+      "biological process",
+      "NULL"
+    ],
+    "macrophage differentiation": [
+      "biological process",
+      "NULL"
+    ]
+  },
+  "relations": [
+    {
+      "head": "Interleukin-6",
+      "tail": "Signal transducer and activator of transcription 3",
+      "label": "activate",
+      "text": "Interleukin-6 (IL-6) induces either differentiation or growth of a variety of cells."
+    },
+    {
+      "head": "Signal transducer and activator of transcription 3",
+      "tail": "G(0)/G1 growth arrest",
+      "label": "upregulate",
+      "text": "We show that dominant-negative forms of Stat3 inhibited both IL-6-induced growth arrest at G(0)/G1 and macrophage differentiation in the M1 transformants."
+    },
+    {
+      "head": "Signal transducer and activator of transcription 3",
+      "tail": "macrophage differentiation",
+      "label": "upregulate",
+      "text": "We show that dominant-negative forms of Stat3 inhibited both IL-6-induced growth arrest at G(0)/G1 and macrophage differentiation in the M1 transformants."
+    },
+    {
+      "head": "Signal transducer and activator of transcription 3",
+      "tail": "Myb proto-oncogene",
+      "label": "downregulate",
+      "text": "Blocking of Stat activation resulted in inhibition of IL-6-induced repression of c-myb and c-myc."
+    },
+    {
+      "head": "Signal transducer and activator of transcription 3",
+      "tail": "Myc proto-oncogene",
+      "label": "downregulate",
+      "text": "Blocking of Stat activation resulted in inhibition of IL-6-induced repression of c-myb and c-myc."
+    },
+    {
+      "head": "Interleukin-6",
+      "tail": "cell growth",
+      "label": "upregulate",
+      "text": "IL-6 enhanced the growth of M1 cells primarily through shortening the length of the G1 period when Stat3 was suppressed."
+    }
+  ],
+  "analysis": "Context:\n• The study uses M1 leukemia cells, which are an immortalized cell line. There is no explicit in vivo disease model or pathological stress condition described. According to the strict rules, this is a standard immortalized cell culture context with no clear disease linkage.  \n  ⇒ Context = none, Context Type = Undefined/Generic\n\nNodes (with classification):\n1) Interleukin-6 → protein  \n2) Signal transducer and activator of transcription 3 → protein  \n3) Myb proto-oncogene → Gene/RNA  \n4) Myc proto-oncogene → Gene/RNA  \n5) G(0)/G1 growth arrest → biological process/pathway  \n6) macrophage differentiation → biological process/pathway  \n7) cell growth → biological process/pathway  \n8) M1 leukemia cells → experimental model  \n\nRegulatory Relationships (direct interactions only, no acronyms):\n1) Interleukin-6 activates Signal transducer and activator of transcription 3  \n2) Signal transducer and activator of transcription 3 downregulates Myb proto-oncogene  \n3) Signal transducer and activator of transcription 3 downregulates Myc proto-oncogene  \n4) Signal transducer and activator of transcription 3 upregulates G(0)/G1 growth arrest  \n5) Signal transducer and activator of transcription 3 upregulates macrophage differentiation  \n6) Interleukin-6 upregulates cell growth"
+}

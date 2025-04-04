@@ -1,0 +1,89 @@
+{
+  "context": [
+    {
+      "name": "colorectal cancer",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "MAPK signaling pathway": [
+      "biological process/pathway",
+      "up"
+    ],
+    "N6-methyladenosine": [
+      "Epitranscriptomic modification",
+      "none"
+    ],
+    "VEGFA": [
+      "Gene/RNA",
+      "up"
+    ],
+    "Wilms tumor 1-associated protein (WTAP)": [
+      "protein",
+      "up"
+    ],
+    "YTHDC1": [
+      "protein",
+      "none"
+    ],
+    "angiogenesis": [
+      "biological process/pathway",
+      "up"
+    ],
+    "colorectal cancer": [
+      "disease",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "Wilms tumor 1-associated protein (WTAP)",
+      "tail": "N6-methyladenosine",
+      "label": "methylate",
+      "text": "Combined RNA sequencing and m6A RNA immunoprecipitation (MeRIP) sequencing, we found downstream molecules VEGFA.",
+      "metaRelations": [
+        {
+          "label": "increase",
+          "target": "VEGFA"
+        }
+      ]
+    },
+    {
+      "head": "N6-methyladenosine",
+      "tail": "VEGFA",
+      "label": "is on",
+      "text": "Combined RNA sequencing and m6A RNA immunoprecipitation (MeRIP) sequencing, we found downstream molecules VEGFA."
+    },
+    {
+      "head": "YTHDC1",
+      "tail": "N6-methyladenosine",
+      "label": "bind",
+      "text": "Moreover, we identified YTHDC1 as a downstream effector of the YTHDC1-VEGFA axis in CRC.",
+      "metaRelations": [
+        {
+          "label": "increase",
+          "target": "VEGFA"
+        }
+      ]
+    },
+    {
+      "head": "VEGFA",
+      "tail": "MAPK signaling pathway",
+      "label": "upregulate",
+      "text": "Furthermore, increased WTAP expression activated the MAPK signaling pathway, which led to enhanced angiogenesis."
+    },
+    {
+      "head": "MAPK signaling pathway",
+      "tail": "angiogenesis",
+      "label": "upregulate",
+      "text": "Furthermore, increased WTAP expression activated the MAPK signaling pathway, which led to enhanced angiogenesis."
+    },
+    {
+      "head": "angiogenesis",
+      "tail": "colorectal cancer",
+      "label": "promote",
+      "text": "In conclusion, our study revealed that the WTAP/YTHDC1/VEGFA axis promotes CRC development, especially angiogenesis, suggesting that it may act as a potential biomarker of CRC."
+    }
+  ],
+  "analysis": "Context:  \nBecause the study explicitly investigates the pathway in colorectal cancer (CRC), a defined disease model, the context is:  \n• Context = \"colorectal cancer\"  \n• Context type = \"disease\"  \n\n────────────────────────────────────────────────────────\nNodes (with node type and context-specific status)\n────────────────────────────────────────────────────────\n1. Wilms tumor 1-associated protein (WTAP)  \n   • Type: protein  \n   • Status in CRC: up (explicitly stated as significantly upregulated in CRC)  \n\n2. N6-methyladenosine  \n   • Type: Epitranscriptomic modification  \n   • Status in CRC: none (no explicit up/down change stated)  \n\n3. YTHDC1  \n   • Type: protein  \n   • Status in CRC: none (mentioned as downstream effector, but no explicit expression change stated)  \n\n4. VEGFA  \n   • Type: Gene/RNA  \n   • Status in CRC: up (WTAP positively regulates VEGFA)  \n\n5. MAPK signaling pathway  \n   • Type: Biological Process/Pathway  \n   • Status in CRC: up (activated by WTAP, leading to enhanced angiogenesis)  \n\n6. angiogenesis  \n   • Type: Biological Process/Pathway  \n   • Status in CRC: up (enhanced under increased WTAP expression)  \n\n7. colorectal cancer  \n   • Type: disease  \n   • Status: none (the disease itself does not get an “up” or “down” status)  \n\n────────────────────────────────────────────────────────\nRegulatory Relationships\n────────────────────────────────────────────────────────\n1) WTAP methylates m6A with a secondary effect of increasing VEGFA.  \n2) m6A is on VEGFA.  \n3) YTHDC1 binds m6A with a secondary effect of increasing VEGFA.  \n4) VEGFA upregulates MAPK signaling pathway.  \n5) MAPK signaling pathway upregulates angiogenesis.  \n6) angiogenesis promotes colorectal cancer.  \n\n────────────────────────────────────────────────────────\nConstructed Pathway Graph (JSON)\n────────────────────────────────────────────────────────\n{\n  \"context\": [\n    {\n      \"name\": \"colorectal cancer\",\n      \"type\": \"disease\"\n    }\n  ],\n  \"entities\": {\n    \"Wilms tumor 1-associated protein (WTAP)\": [\"protein\", \"up\"],\n    \"N6-methyladenosine\": [\"Epitranscriptomic modification\", \"none\"],\n    \"YTHDC1\": [\"protein\", \"none\"],\n    \"VEGFA\": [\"Gene/RNA\", \"up\"],\n    \"MAPK signaling pathway\": [\"biological process/pathway\", \"up\"],\n    \"angiogenesis\": [\"biological process/pathway\", \"up\"],\n    \"colorectal cancer\": [\"disease\", \"none\"]\n  },\n  \"relations\": [\n    {\n      \"head\": \"Wilms tumor 1-associated protein (WTAP)\",\n      \"tail\": \"N6-methyladenosine\",\n      \"label\": \"methylate\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"increase\",\n          \"target\": \"VEGFA\"\n        }\n      ]\n    },\n    {\n      \"head\": \"N6-methyladenosine\",\n      \"tail\": \"VEGFA\",\n      \"label\": \"is on\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"YTHDC1\",\n      \"tail\": \"N6-methyladenosine\",\n      \"label\": \"bind\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"increase\",\n          \"target\": \"VEGFA\"\n        }\n      ]\n    },\n    {\n      \"head\": \"VEGFA\",\n      \"tail\": \"MAPK signaling pathway\",\n      \"label\": \"upregulate\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"MAPK signaling pathway\",\n      \"tail\": \"angiogenesis\",\n      \"label\": \"upregulate\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"angiogenesis\",\n      \"tail\": \"colorectal cancer\",\n      \"label\": \"promote\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    }\n  ]\n}"
+}

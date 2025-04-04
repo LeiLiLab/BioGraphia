@@ -1,0 +1,127 @@
+{
+  "context": [
+    {
+      "name": "lung adenocarcinoma",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "EMT": [
+      "biological process",
+      "none"
+    ],
+    "HuR": [
+      "Protein",
+      "none"
+    ],
+    "LINC00641": [
+      "Gene/RNA",
+      "down"
+    ],
+    "N-cadherin": [
+      "Protein",
+      "none"
+    ],
+    "N6-methyladenosine": [
+      "Epitranscriptomic modification",
+      "none"
+    ],
+    "YTHDC1": [
+      "Protein",
+      "none"
+    ],
+    "arachidonic acid metabolism": [
+      "biological process",
+      "none"
+    ],
+    "ferroptosis": [
+      "biological process",
+      "none"
+    ],
+    "lung adenocarcinoma": [
+      "disease",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "N6-methyladenosine",
+      "tail": "LINC00641",
+      "label": "is on",
+      "text": "LINC00641 was localized primarily in the nucleus and was modified by m6A."
+    },
+    {
+      "head": "YTHDC1",
+      "tail": "N6-methyladenosine",
+      "label": "bind",
+      "text": "The nuclear m6A reader YTHDC1 regulated LINC00641 expression by affecting its stability.",
+      "metaRelations": [
+        {
+          "label": "stabilize",
+          "target": "LINC00641"
+        }
+      ]
+    },
+    {
+      "head": "LINC00641",
+      "tail": "HuR",
+      "label": "downregulate",
+      "text": "Knockdown of LINC00641 upregulated HuR protein level (especially in the cytoplasm)."
+    },
+    {
+      "head": "HuR",
+      "tail": "N-cadherin",
+      "label": "upregulate",
+      "text": "HuR protein level subsequently increased N-cadherin levels by stabilizing its mRNA."
+    },
+    {
+      "head": "N-cadherin",
+      "tail": "EMT",
+      "label": "promote",
+      "text": "N-cadherin levels ultimately promoted EMT."
+    },
+    {
+      "head": "LINC00641",
+      "tail": "arachidonic acid metabolism",
+      "label": "downregulate",
+      "text": "LINC00641 knockdown in lung cancer cells increased the arachidonic acid metabolism."
+    },
+    {
+      "head": "LINC00641",
+      "tail": "ferroptosis sensitivity",
+      "label": "inhibit",
+      "text": "Low expression of LINC00641 caused a ferroptotic vulnerability in lung cancer cells."
+    },
+    {
+      "head": "LINC00641",
+      "tail": "cell migration",
+      "label": "inhibit",
+      "text": "",
+      "metaRelations": [
+        {
+          "label": "suppress",
+          "target": "lung adenocarcinoma"
+        }
+      ]
+    },
+    {
+      "head": "LINC00641",
+      "tail": "cell invasion",
+      "label": "inhibit",
+      "text": "",
+      "metaRelations": [
+        {
+          "label": "suppress",
+          "target": "lung adenocarcinoma"
+        }
+      ]
+    },
+    {
+      "head": "LINC00641",
+      "tail": "EMT",
+      "label": "inhibit",
+      "text": ""
+    }
+  ],
+  "analysis": "Context:  \nThe study is performed in lung cancer (lung adenocarcinoma), which is a disease model. Therefore, context = \"lung adenocarcinoma\"; context type = \"disease.\"\n\nNodes:  \n1. LINC00641 → Gene/RNA  \n2. N6-methyladenosine → Epitranscriptomic modification  \n3. YTHDC1 → Protein  \n4. HuR → Protein  \n5. N-cadherin → Protein  \n6. EMT → Biological Process/Pathway  \n7. ferroptosis → Biological Process/Pathway  \n8. arachidonic acid metabolism → Biological Process/Pathway  \n9. lung adenocarcinoma → Disease  \n\nRegulatory relationships (direct):  \n1. N6-methyladenosine is on LINC00641  \n2. YTHDC1 binds N6-methyladenosine, which stabilizes LINC00641  \n3. LINC00641 downregulates HuR  \n4. HuR upregulates N-cadherin  \n5. N-cadherin promotes EMT  \n6. LINC00641 downregulates arachidonic acid metabolism  \n7. arachidonic acid metabolism promotes ferroptosis  \n8. LINC00641 inhibits lung adenocarcinoma  \n9. LINC00641 inhibits ferroptosis  \n\nConstructed Pathway Graph (JSON format):  \n{\n  \"context\": [\n    {\n      \"name\": \"lung adenocarcinoma\",\n      \"type\": \"disease\"\n    }\n  ],\n  \"entities\": {\n    \"LINC00641\": [\"Gene/RNA\", \"down\"],\n    \"N6-methyladenosine\": [\"Epitranscriptomic modification\", \"none\"],\n    \"YTHDC1\": [\"Protein\", \"none\"],\n    \"HuR\": [\"Protein\", \"none\"],\n    \"N-cadherin\": [\"Protein\", \"none\"],\n    \"EMT\": [\"biological process\", \"none\"],\n    \"ferroptosis\": [\"biological process\", \"none\"],\n    \"arachidonic acid metabolism\": [\"biological process\", \"none\"],\n    \"lung adenocarcinoma\": [\"disease\", \"none\"]\n  },\n  \"relations\": [\n    {\n      \"head\": \"N6-methyladenosine\",\n      \"tail\": \"LINC00641\",\n      \"label\": \"is on\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"YTHDC1\",\n      \"tail\": \"N6-methyladenosine\",\n      \"label\": \"bind\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"stabilize\",\n          \"target\": \"LINC00641\"\n        }\n      ]\n    },\n    {\n      \"head\": \"LINC00641\",\n      \"tail\": \"HuR\",\n      \"label\": \"downregulate\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"HuR\",\n      \"tail\": \"N-cadherin\",\n      \"label\": \"upregulate\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"N-cadherin\",\n      \"tail\": \"EMT\",\n      \"label\": \"promote\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"LINC00641\",\n      \"tail\": \"arachidonic acid metabolism\",\n      \"label\": \"downregulate\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"arachidonic acid metabolism\",\n      \"tail\": \"ferroptosis\",\n      \"label\": \"promote\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"LINC00641\",\n      \"tail\": \"lung adenocarcinoma\",\n      \"label\": \"inhibit\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    },\n    {\n      \"head\": \"LINC00641\",\n      \"tail\": \"ferroptosis\",\n      \"label\": \"inhibit\",\n      \"metaRelations\": [\n        {\n          \"relation\": \"NULL\",\n          \"target\": \"NULL\"\n        }\n      ]\n    }\n  ]\n}"
+}

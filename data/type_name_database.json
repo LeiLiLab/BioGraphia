@@ -1,0 +1,29 @@
+{
+    "type": [
+        "Disease",
+        "Cell/Tissue",
+        "Pathological/Environmental Stress",
+        "Undefined/Generic"
+    ],
+    "name": [
+        "Breast Cancer",
+        "Radiation Exposure",
+        "Allergic Inflammation",
+        "Alzheimer's Disease",
+        "Cancer",
+        "Gastrointestinal Cancers",
+        "Radiation-Induced Apoptosis",
+        "Cell-Type Specific",
+        "Angiogenesis and Cancer",
+        "Inflammation",
+        "Epithelial Tumors",
+        "Male Germ Cells",
+        "Tumor-Related Diseases",
+        "Acute Myeloid Leukemia",
+        "RASopathies",
+        "Hematologic Malignancies",
+        "Epithelial Cells",
+        "Inflammatory Diseases",
+        "Hepatocytes"
+    ]
+}

@@ -1,0 +1,91 @@
+{
+  "context": [
+    {
+      "name": "none",
+      "type": "Undefined/Generic"
+    }
+  ],
+  "entities": {
+    "3T3-L1 adipocytes": [
+      "experimental model",
+      "none"
+    ],
+    "CCAAT/enhancer-binding alpha": [
+      "protein",
+      "none"
+    ],
+    "Interferon gamma": [
+      "protein",
+      "none"
+    ],
+    "Peroxisome proliferator-activated receptor gamma": [
+      "protein",
+      "none"
+    ],
+    "STAT1": [
+      "protein",
+      "none"
+    ],
+    "STAT3": [
+      "protein",
+      "none"
+    ],
+    "Sterol regulatory element binding protein 1": [
+      "protein",
+      "none"
+    ],
+    "insulin resistance": [
+      "clinical phenotype",
+      "none"
+    ],
+    "insulin-sensitive glucose uptake": [
+      "biological process",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "Interferon gamma",
+      "tail": "Peroxisome proliferator-activated receptor gamma",
+      "label": "downregulate",
+      "text": "IFN-gamma treatment resulted in a rapid reduction of both peroxisome proliferator-activated receptor (PPAR) protein and mRNA."
+    },
+    {
+      "head": "Interferon gamma",
+      "tail": "CCAAT/enhancer-binding alpha",
+      "label": "downregulate",
+      "text": "A 48-h exposure to IFN-gamma also resulted in a decrease of both CCAAT/enhancer-binding alpha and sterol regulatory element binding protein (SREBP-1) expression."
+    },
+    {
+      "head": "Interferon gamma",
+      "tail": "Sterol regulatory element binding protein 1",
+      "label": "downregulate",
+      "text": "A 48-h exposure to IFN-gamma also resulted in a decrease of both CCAAT/enhancer-binding alpha and sterol regulatory element binding protein (SREBP-1) expression."
+    },
+    {
+      "head": "Interferon gamma",
+      "tail": "STAT1",
+      "label": "upregulate",
+      "text": "In addition, exposure to IFN-gamma resulted in a substantial increase in STAT 1 expression."
+    },
+    {
+      "head": "Interferon gamma",
+      "tail": "STAT3",
+      "label": "upregulate",
+      "text": "In addition, exposure to IFN-gamma resulted in a small increase in STAT 3 expression."
+    },
+    {
+      "head": "Interferon gamma",
+      "tail": "insulin-sensitive glucose uptake",
+      "label": "inhibit",
+      "text": "IFN-gamma treatment of 3T3-L1 adipocytes (48-96 h) resulted in a substantial inhibition of insulin-sensitive glucose uptake."
+    },
+    {
+      "head": "Interferon gamma",
+      "tail": "insulin resistance",
+      "label": "induce",
+      "text": "These data clearly demonstrate that IFN-gamma treatment results in the development of insulin resistance."
+    }
+  ],
+  "analysis": "Context:  \nBased on the instructions, 3T3-L1 adipocytes are a standard immortalized cell line, and there is no explicit disease model or specific pathological/environmental stress described. Therefore, the context is \"none,\" with context type \"Undefined/Generic.\"\n\nNodes:  \n1. Interferon gamma → protein  \n2. Peroxisome proliferator-activated receptor gamma → protein  \n3. CCAAT/enhancer-binding alpha → protein  \n4. Sterol regulatory element binding protein 1 → protein  \n5. STAT1 → protein  \n6. STAT3 → protein  \n7. insulin-sensitive glucose uptake → biological process/pathway  \n8. insulin resistance → clinical phenotype  \n9. 3T3-L1 adipocytes → experimental model  \n\nRegulatory Relationships:  \n• Interferon gamma downregulates Peroxisome proliferator-activated receptor gamma  \n• Interferon gamma downregulates CCAAT/enhancer-binding alpha  \n• Interferon gamma downregulates Sterol regulatory element binding protein 1  \n• Interferon gamma upregulates STAT1  \n• Interferon gamma upregulates STAT3  \n• Interferon gamma inhibits insulin-sensitive glucose uptake  \n• Interferon gamma induces insulin resistance  \n\nConstructed Pathway Graph (JSON Format):\n\n{\n  \"context\": [\n    {\n      \"name\": \"none\",\n      \"type\": \"Undefined/Generic\"\n    }\n  ],\n  \"entities\": {\n    \"Interferon gamma\": [\"protein\", \"none\"],\n    \"Peroxisome proliferator-activated receptor gamma\": [\"protein\", \"none\"],\n    \"CCAAT/enhancer-binding alpha\": [\"protein\", \"none\"],\n    \"Sterol regulatory element binding protein 1\": [\"protein\", \"none\"],\n    \"STAT1\": [\"protein\", \"none\"],\n    \"STAT3\": [\"protein\", \"none\"],\n    \"insulin-sensitive glucose uptake\": [\"biological process\", \"none\"],\n    \"insulin resistance\": [\"clinical phenotype\", \"none\"],\n    \"3T3-L1 adipocytes\": [\"experimental model\", \"none\"]\n  },\n  \"relations\": [\n    {\n      \"head\": \"Interferon gamma\",\n      \"tail\": \"Peroxisome proliferator-activated receptor gamma\",\n      \"label\": \"downregulate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"Interferon gamma\",\n      \"tail\": \"CCAAT/enhancer-binding alpha\",\n      \"label\": \"downregulate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"Interferon gamma\",\n      \"tail\": \"Sterol regulatory element binding protein 1\",\n      \"label\": \"downregulate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"Interferon gamma\",\n      \"tail\": \"STAT1\",\n      \"label\": \"upregulate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"Interferon gamma\",\n      \"tail\": \"STAT3\",\n      \"label\": \"upregulate\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"Interferon gamma\",\n      \"tail\": \"insulin-sensitive glucose uptake\",\n      \"label\": \"inhibit\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    },\n    {\n      \"head\": \"Interferon gamma\",\n      \"tail\": \"insulin resistance\",\n      \"label\": \"induce\",\n      \"metaRelations\": [\n        {\"relation\": \"NULL\", \"target\": \"NULL\"}\n      ]\n    }\n  ]\n}"
+}

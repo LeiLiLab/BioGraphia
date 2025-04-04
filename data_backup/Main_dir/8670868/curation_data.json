@@ -1,0 +1,130 @@
+{
+  "metadata": {
+    "last_update": "2025-03-28T20:23:47.054111",
+    "user_data_hashes": {
+      "Xi Xu": "d904c5ffc8c1748fb141337830ad79e4",
+      "test": "fe11e085326d67aee8c3104f3930a6e5"
+    }
+  },
+  "same_relations": [
+    {
+      "head": "Interleukin-6",
+      "label": "activate",
+      "tail": "Signal transducer and activator of transcription 3",
+      "text": "Interleukin-6 (IL-6) induces either differentiation or growth of a variety of cells.",
+      "status": "undecided",
+      "users": [
+        "Xi Xu",
+        "test"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Signal transducer and activator of transcription 3",
+      "label": "downregulate",
+      "tail": "Myb proto-oncogene",
+      "text": "Blocking of Stat activation resulted in inhibition of IL-6-induced repression of c-myb and c-myc.",
+      "status": "undecided",
+      "users": [
+        "Xi Xu",
+        "test"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Signal transducer and activator of transcription 3",
+      "label": "downregulate",
+      "tail": "Myc proto-oncogene",
+      "text": "Blocking of Stat activation resulted in inhibition of IL-6-induced repression of c-myb and c-myc.",
+      "status": "undecided",
+      "users": [
+        "Xi Xu",
+        "test"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Signal transducer and activator of transcription 3",
+      "label": "upregulate",
+      "tail": "G(0)/G1 growth arrest",
+      "text": "We show that dominant-negative forms of Stat3 inhibited both IL-6-induced growth arrest at G(0)/G1 and macrophage differentiation in the M1 transformants.",
+      "status": "undecided",
+      "users": [
+        "Xi Xu",
+        "test"
+      ],
+      "note": "",
+      "metaRelations": []
+    }
+  ],
+  "different_relations": [
+    {
+      "head": "Signal transducer and activator of transcription 3",
+      "label": "upregulate",
+      "tail": "macrophage differentiation",
+      "text": "We show that dominant-negative forms of Stat3 inhibited both IL-6-induced growth arrest at G(0)/G1 and macrophage differentiation in the M1 transformants.",
+      "status": "undecided",
+      "users": [
+        "Xi Xu"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Interleukin-6",
+      "label": "upregulate",
+      "tail": "cell growth",
+      "text": "IL-6 enhanced the growth of M1 cells primarily through shortening the length of the G1 period when Stat3 was suppressed.",
+      "status": "undecided",
+      "users": [
+        "Xi Xu"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "Signal transducer and activator of transcription 3",
+      "label": "upregulate",
+      "tail": "macrophage differentiation",
+      "text": "We show that dominant-negative forms of Stat3 inhibited both IL-6-induced growth arrest at G(0)/G1 and macrophage differentiation in the M1 transformants.",
+      "status": "undecided",
+      "users": [
+        "test"
+      ],
+      "note": "",
+      "metaRelations": [
+        {
+          "label": "test",
+          "target": "G(0)/G1 growth arrest"
+        }
+      ]
+    },
+    {
+      "head": "Interleukin-6",
+      "label": "upregulate",
+      "tail": "cell growth test",
+      "text": "IL-6 enhanced the growth of M1 cells primarily through shortening the length of the G1 period when Stat3 was suppressed.",
+      "status": "undecided",
+      "users": [
+        "test"
+      ],
+      "note": "",
+      "metaRelations": []
+    },
+    {
+      "head": "macrophage differentiation",
+      "label": "test",
+      "tail": "G(0)/G1 growth arrest",
+      "text": "",
+      "status": "undecided",
+      "users": [
+        "test"
+      ],
+      "note": "",
+      "metaRelations": []
+    }
+  ]
+}

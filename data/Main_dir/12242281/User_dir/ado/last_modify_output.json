@@ -1,0 +1,67 @@
+{
+  "context": [
+    {
+      "name": "prostate cancer",
+      "type": "disease"
+    }
+  ],
+  "entities": {
+    "Cobalt chloride": [
+      "chemical compound",
+      "none"
+    ],
+    "HIF-1 dependent transcription": [
+      "biological process",
+      "none"
+    ],
+    "Hypoxia": [
+      "Other",
+      "none"
+    ],
+    "Hypoxia-inducible factor 1 alpha": [
+      "protein",
+      "none"
+    ],
+    "Mammalian target of rapamycin": [
+      "protein",
+      "none"
+    ],
+    "Rapamycin": [
+      "chemical compound",
+      "none"
+    ]
+  },
+  "relations": [
+    {
+      "head": "Rapamycin",
+      "tail": "mTOR",
+      "label": "inhibit",
+      "text": "Pretreatment of PC-3 cells with the mTOR inhibitor, rapamycin, inhibited both the accumulation of HIF-1alpha and HIF-1-dependent transcription induced by hypoxia or CoCl(2)."
+    },
+    {
+      "head": "mTOR",
+      "tail": "Hypoxia-inducible factor 1 alpha",
+      "label": "upregulate",
+      "text": "Transfection of these cells with wild-type mTOR enhanced HIF-1 activation by hypoxia or CoCl(2)."
+    },
+    {
+      "head": "Hypoxia",
+      "tail": "Hypoxia-inducible factor 1 alpha",
+      "label": "upregulate",
+      "text": "Under hypoxic conditions, the HIF-1alpha subunit accumulates due to a decrease in the rate of proteolytic degradation."
+    },
+    {
+      "head": "Cobalt chloride",
+      "tail": "Hypoxia-inducible factor 1 alpha",
+      "label": "upregulate",
+      "text": "In the present study, we have explored further the linkage between mTOR and HIF-1 in PC-3 prostate cancer cells treated with hypoxia or the hypoxia mimetic agent, CoCl(2)."
+    },
+    {
+      "head": "mTOR",
+      "tail": "HIF-1-dependent transcription",
+      "label": "upregulate",
+      "text": "Pretreatment of PC-3 cells with the mTOR inhibitor, rapamycin, inhibited both the accumulation of HIF-1alpha and HIF-1-dependent transcription induced by hypoxia or CoCl(2)."
+    }
+  ],
+  "analysis": "Context:  \n• prostate cancer (type: disease)\n\nNodes:  \n1) Mammalian target of rapamycin (protein)  \n2) Hypoxia-inducible factor 1 alpha (protein)  \n3) Rapamycin (chemical compound)  \n4) Hypoxia (Other)  \n5) Cobalt chloride (chemical compound)  \n6) HIF-1 dependent transcription (biological process/pathway)\n\nRegulatory Relationships (direct only):  \n1) Rapamycin inhibits Mammalian target of rapamycin  \n2) Mammalian target of rapamycin upregulates Hypoxia-inducible factor 1 alpha  \n3) Hypoxia upregulates Hypoxia-inducible factor 1 alpha  \n4) Cobalt chloride upregulates Hypoxia-inducible factor 1 alpha  \n5) Hypoxia-inducible factor 1 alpha upregulates HIF-1 dependent transcription"
+}
