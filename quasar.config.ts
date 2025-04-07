@@ -114,6 +114,14 @@ export default defineConfig((ctx) => {
       // @ts-ignore
       port: frontendPort,
       open: true, // opens browser window automatically
+      proxy: {
+        // Add proxy configuration for API requests
+        '/api': {
+          target: `http://${process.env.VITE_SERVER_HOST}:${process.env.VITE_BACKEND_PORT}`,
+          changeOrigin: true,
+          secure: false
+        }
+      }
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework

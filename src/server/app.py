@@ -1,14 +1,3 @@
-"""
-论文分析系统后端服务器
-
-功能说明：
-1. 提供论文分析系统的后端 API 服务
-2. 处理前端的数据请求和更新
-3. 生成可视化图形
-4. 支持多用户会话管理
-5. 用户管理功能
-"""
-
 from flask import Flask, jsonify, request, send_from_directory, send_file
 from flask_cors import CORS
 import json
