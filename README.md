@@ -5,15 +5,16 @@ You can try BioGraphia on link. We disabled login for the demo version.
 ## Configuration
 Create a .env file in the root directory and set the following variables:
 
-### OpenAI Configuration
+```
+
 OPENAI_API_KEY= [YOUR_API_KEY_HERE]
 OPENAI_ANALYSIS_MODEL=o1
 OPENAI_JSON_MODEL=gpt-4o
 
-### Server Configuration
 VITE_SERVER_HOST=localhost
 VITE_BACKEND_PORT=3000 # Backend Port
 VITE_FRONTEND_PORT=9000 # Frontend Port
+```
 
 ## Installation
 
