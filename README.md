@@ -1,6 +1,6 @@
 # BioGraphia
 
-You can try BioGraphia on link. We disabled login for the demo version.
+You can try BioGraphia on [link](https://biographia.share.zrok.io/#/). We disabled login for the demo version.
 
 ## Configuration
 Create a .env file in the root directory and set the following variables:
@@ -47,5 +47,23 @@ Run the application in standalone mode:
 python start.py --standalone
 ```
 this will restore the data every 5 minutes
+
+## Creating a zrok tunnel
+To create your own zrok tunnel, use the following commands:
+1. Create a zrok account to get your account token.
+2. Download zrok through this [link](https://docs.zrok.io/docs/getting-started/?_gl=1*28k332*_gcl_au*MTEyMzMyNDAyMy4xNzQzMTMzNDM0*_ga*MTAwMjkwNDA3NC4xNzQzMTMzNDM0*_ga_V2KMEXWJ10*MTc0Mzk5MDA3OS44LjAuMTc0Mzk5MDA3OS42MC4wLjA.#installing-the-zrok-command).
+3. Enable zrok for your account.
+```
+zrok enable <your_account_token>
+```
+4. Reserve a public share token named <unique_name>
+```
+zrok reserve public <your_local_frontend_url> --unique-name <unique_name>
+```
+5. Share the reserved token
+```
+zrok share reserved <unique_name>
+```
+6. Now you should be able to visit the site using <unique_name>.share.zrok.io.
 
 This project is licensed under the Apache 2.0 License.
