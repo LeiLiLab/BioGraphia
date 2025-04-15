@@ -3,13 +3,24 @@
 
 import { defineConfig } from '#q-app/wrappers'
 import { fileURLToPath } from 'node:url'
+import dotenv from 'dotenv'
+
+// Load environment variables from .env file
+dotenv.config()
 
 // 获取端口号，确保是数字类型
 const frontendPort = (() => {
-  const portFromEnv = Number(process.env.VITE_FRONTEND_PORT);
+  const portFromEnv = Number(process.env.VITE_FRONTEND_PORT || 9000);
   console.log("现在端口号是：", portFromEnv);
   return portFromEnv;
 })();
+
+// Define server host and backend port with defaults
+const serverHost = process.env.VITE_SERVER_HOST || 'localhost';
+const backendPort = process.env.VITE_BACKEND_PORT || '3000';
+
+console.log("Server host:", serverHost);
+console.log("Backend port:", backendPort);
 
 export default defineConfig((ctx) => {
   return {
@@ -117,9 +128,18 @@ export default defineConfig((ctx) => {
       proxy: {
         // Add proxy configuration for API requests
         '/api': {
-          target: `http://${process.env.VITE_SERVER_HOST}:${process.env.VITE_BACKEND_PORT}`,
+          target: `http://${serverHost}:${backendPort}`,
           changeOrigin: true,
-          secure: false
+          secure: false,
+          // Add logging for debugging
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
+              console.log('Proxy error:', err);
+            });
+            proxy.on('proxyReq', (proxyReq, req, _res) => {
+              console.log('Sending request to:', proxyReq.path);
+            });
+          }
         }
       }
     },

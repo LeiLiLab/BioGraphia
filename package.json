@@ -10,7 +10,7 @@
     "lint": "eslint -c ./eslint.config.js \"./src*/**/*.{ts,js,cjs,mjs,vue}\"",
     "format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
     "test": "echo \"No test specified\" && exit 0",
-    "dev": "quasar dev",
+    "dev": "cross-env NODE_OPTIONS=\"--env-file=.env\" quasar dev",
     "build": "quasar build",
     "postinstall": "quasar prepare"
   },
@@ -20,6 +20,7 @@
     "axios": "^1.2.1",
     "cors": "^2.8.5",
     "d3": "^7.9.0",
+    "dotenv": "^16.5.0",
     "quasar": "^2.16.0",
     "sortablejs": "^1.15.6",
     "vue": "^3.4.18",
