@@ -1411,8 +1411,6 @@ export default defineComponent({
         selectedRow.value = -1
         selectedText.value = ''
         hoverText.value = ''
-        // 重置高亮标志
-        isTextHighlighting.value = false
       }
     }
 
@@ -2989,19 +2987,22 @@ export default defineComponent({
         // 获取点击的文本内容
         const clickedText = clickedElement.textContent || ''
         
-        if (clickedText) {
-          // 如果点击的文本与当前已选中的文本相同，则取消选中
-          if (clickedText === selectedText.value) {
+        // 修改后的取消高亮逻辑
+        // 检查当前是否已有文本被选中
+        if (selectedText.value) {
+          // 查找包含点击文本的已选中文本或点击文本包含已选中文本的情况
+          if (selectedText.value.includes(clickedText) || clickedText.includes(selectedText.value)) {
             selectedRow.value = -1
             selectedText.value = ''
-            // 重置高亮标志，确保取消高亮状态
-            isTextHighlighting.value = false
             // 阻止事件冒泡和默认行为
             event.stopPropagation()
             event.preventDefault()
             return
           }
+        }
         
+        // 如果不是取消高亮，则继续现有逻辑
+        if (clickedText) {
           // 查找所有匹配该文本的relation行（使用filter替代find，找出所有匹配的行）
           const matchingRows = tableData.value.filter(row => row.text === clickedText)
           
