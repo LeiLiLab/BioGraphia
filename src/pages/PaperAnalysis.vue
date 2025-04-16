@@ -51,6 +51,8 @@ fetchData() 从后端获取数据 * 2. 数据保存在 paperData 响应式变量
                 class="text-body1 q-mb-md abstract"
                 ref="abstractText"
                 v-html="highlightedAbstract"
+                @mouseup="handleAbstractTextSelection"
+                @click="handleHighlightedTextClick($event)"
               ></div>
             </template>
           </q-card-section>
@@ -630,18 +632,8 @@ fetchData() 从后端获取数据 * 2. 数据保存在 paperData 响应式变量
 
             <!-- 控制按钮组 -->
             <div v-if="!isResponseView" class="row justify-center q-mt-md full-width">
-              <!-- Add relation button -->
-              <q-btn
-                v-if="isEditing"
-                round
-                dense
-                color="primary"
-                icon="add"
-                class="relation-add-btn q-mx-sm"
-                @click="addRelation"
-              >
-                <q-tooltip>Add new relation</q-tooltip>
-              </q-btn>
+              <!-- Remove the add relation button in edit mode -->
+              <!-- Add relation button is removed as per requirements -->
 
               <q-btn
                 v-if="isEditing"
@@ -739,6 +731,32 @@ fetchData() 从后端获取数据 * 2. 数据保存在 paperData 响应式变量
         <CommentSection :paper-url="paperUrl" :current-user="currentUser" />
       </div>
     </div>
+
+    <!-- Add TextSelectionPrompt component -->
+    <TextSelectionPrompt
+      :show="showTextSelectionPrompt"
+      :position="textSelectionPromptPosition"
+      @confirm="showAddRelationForm = true"
+      @cancel="cancelTextSelection"
+    />
+
+    <!-- Add SelectionIndicator component -->
+    <SelectionIndicator
+      :show="showSelectionIndicator"
+      :position="selectionIndicatorPosition"
+      :container-bounds="abstractBounds"
+      @click="handleSelectionIndicatorClick"
+      @confirm="showAddRelationForm = true"
+    />
+
+    <!-- Add RelationForm Dialog -->
+    <q-dialog v-model="showAddRelationForm" @hide="cancelAddRelation">
+      <AddRelationForm
+        :supporting-text="selectedAbstractText"
+        @cancel="showAddRelationForm = false"
+        @submit="handleAddRelationFromSelection"
+      />
+    </q-dialog>
   </q-page>
 </template>
 
@@ -753,6 +771,9 @@ import { useRoute, useRouter } from 'vue-router'
 import typeOptions from '../../data/type_name_database.json'
 import nodesRelationsData from '../../data/nodes_relations_database.json'
 import { BACKEND_URL } from '../config/api'
+import TextSelectionPrompt from '../components/TextSelectionPrompt.vue'
+import AddRelationForm from '../components/AddRelationForm.vue'
+import SelectionIndicator from '../components/SelectionIndicator.vue'
 
 /**
  * context数据项结构
@@ -833,12 +854,28 @@ interface OriginalRelation {
   }>
 }
 
+// 为formData定义类型接口
+interface RelationFormData {
+  head: string;
+  relation: string;
+  tail: string;
+  text: string;
+  note: string;
+  metaRelations: Array<{
+    target: string;
+    label: string;
+  }>;
+}
+
 export default defineComponent({
   name: 'PaperAnalysis',
 
   components: {
     CommentSection,
     GraphVisualizer,
+    TextSelectionPrompt,
+    AddRelationForm,
+    SelectionIndicator
   },
 
   setup() {
@@ -859,6 +896,8 @@ export default defineComponent({
     const originalRelations = ref<TableRow[]>([])
     const currentUser = ref(JSON.parse(localStorage.getItem('currentUser') || '{}'))
     const entities = ref<Record<string, string[]>>({}) // 添加实体数据存储
+    // 添加一个标志，用于区分点击来源（左侧文本还是右侧行）
+    const isTextHighlighting = ref(false)
 
     // Add ref for abstract container
     const abstractText = ref<HTMLElement | null>(null)
@@ -921,6 +960,17 @@ export default defineComponent({
       
       // 添加键盘事件监听器，支持快捷键
       document.addEventListener('keydown', handleKeyDown);
+      
+      // 在组件挂载时添加全局mouseup事件监听
+      document.addEventListener('mouseup', handleGlobalMouseUp)
+      
+      // 添加窗口大小变化监听，以更新边界
+      window.addEventListener('resize', updateAbstractBounds)
+      
+      // 初始时更新边界
+      nextTick(() => {
+        updateAbstractBounds()
+      })
     })
 
     // 在组件卸载时移除事件监听器
@@ -930,6 +980,15 @@ export default defineComponent({
       
       // 移除键盘事件监听器
       document.removeEventListener('keydown', handleKeyDown);
+      
+      // 确保清除所有文本选择
+      cancelTextSelection()
+      
+      // 移除全局mouseup事件监听器
+      document.removeEventListener('mouseup', handleGlobalMouseUp)
+      
+      // 移除窗口大小变化监听
+      window.removeEventListener('resize', updateAbstractBounds)
     })
     
     // 处理键盘快捷键
@@ -1191,14 +1250,16 @@ export default defineComponent({
       }
 
       // 新增：处理重叠区域的函数
-      const processOverlappingRegions = (text: string, regions: Array<{start: number, end: number, type: 'click' | 'hover'}>) => {
+      const processOverlappingRegions = (text: string, regions: Array<{start: number, end: number, type: 'click' | 'hover' | 'default'}>) => {
         // 按开始位置排序
         regions.sort((a, b) => {
           // 首先按照开始位置排序
           if (a.start !== b.start) return a.start - b.start
-          // 如果开始位置相同，click类型优先
-          if (a.type === 'click' && b.type === 'hover') return -1
-          if (a.type === 'hover' && b.type === 'click') return 1
+          // 类型优先级: click > hover > default
+          if (a.type === 'click' && b.type !== 'click') return -1
+          if (a.type !== 'click' && b.type === 'click') return 1
+          if (a.type === 'hover' && b.type === 'default') return -1
+          if (a.type === 'default' && b.type === 'hover') return 1
           // 如果类型也相同，按结束位置排序
           return a.end - b.end
         })
@@ -1234,14 +1295,17 @@ export default defineComponent({
             // 处理当前活动区域的文本
             if (activeRegions.length > 0) {
               const text_segment = text.substring(currentPos, boundary.pos)
-              // 优先使用click类型的高亮
+              // 优先使用click类型的高亮，其次是hover，最后是default
               const hasClick = activeRegions.some(r => r?.type === 'click')
               const hasHover = !hasClick && activeRegions.some(r => r?.type === 'hover')
+              const hasDefault = !hasClick && !hasHover && activeRegions.some(r => r?.type === 'default')
               
               if (hasClick) {
                 result += `<span class="highlighted">${text_segment}</span>`
               } else if (hasHover) {
                 result += `<span class="hover-highlighted">${text_segment}</span>`
+              } else if (hasDefault) {
+                result += `<span class="default-highlighted">${text_segment}</span>`
               } else {
                 result += text_segment
               }
@@ -1269,7 +1333,7 @@ export default defineComponent({
       }
 
       // 收集需要高亮的区域
-      const regions: Array<{start: number, end: number, type: 'click' | 'hover'}> = []
+      const regions: Array<{start: number, end: number, type: 'click' | 'hover' | 'default'}> = []
       
       // 处理选中的文本
       if (selectedText.value) {
@@ -1287,6 +1351,19 @@ export default defineComponent({
         }
       }
       
+      // 新增: 页面加载时，所有需要高亮的句子（右侧表格中的所有text）都变成浅橙色
+      if (tableData.value && tableData.value.length > 0) {
+        for (const row of tableData.value) {
+          // 跳过已经被选中或悬停的文本
+          if (row.text && row.text !== selectedText.value && row.text !== hoverText.value) {
+            const match = findMatch(text, row.text)
+            if (match) {
+              regions.push({...match, type: 'default'})
+            }
+          }
+        }
+      }
+      
       // 如果没有需要高亮的区域，直接返回原文
       if (regions.length === 0) {
         return text
@@ -1301,6 +1378,9 @@ export default defineComponent({
      * 更新选中的行，触发高亮效果
      */
     const onRowClick = (_evt: Event, row: TableRow) => {
+      // 设置标志，表示这是通过点击表格行触发的高亮
+      isTextHighlighting.value = false
+      
       // 如果点击的是当前选中的行，则取消选中
       if (selectedRow.value === row.id) {
         selectedRow.value = -1
@@ -1331,6 +1411,8 @@ export default defineComponent({
         selectedRow.value = -1
         selectedText.value = ''
         hoverText.value = ''
+        // 重置高亮标志
+        isTextHighlighting.value = false
       }
     }
 
@@ -1831,6 +1913,36 @@ export default defineComponent({
       }
     }
 
+    // 创建一个通用的滚动到新行的函数
+    const scrollToNewRow = (rowId: number) => {
+      nextTick(() => {
+        // 等待DOM更新完成后再尝试滚动
+        setTimeout(() => {
+          const newRow = document.querySelector(`[data-row-id="${rowId}"]`)
+          if (newRow) {
+            // 获取分析区域的滚动容器
+            const scrollContainer = document.querySelector('.analysis-scroll')
+            if (scrollContainer) {
+              // 让新行滚动到容器顶部
+              newRow.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              
+              // 如果scrollIntoView导致页面整体滚动，可以调整回来
+              const containerTop = scrollContainer.getBoundingClientRect().top
+              if (containerTop < 0) {
+                window.scrollBy(0, containerTop)
+              }
+            }
+            
+            // 添加一个短暂的高亮效果，提示用户新添加的行位置
+            newRow.classList.add('highlight-new-row')
+            setTimeout(() => {
+              newRow.classList.remove('highlight-new-row')
+            }, 5000) // 5秒后移除高亮效果
+          }
+        }, 100) // 短暂延迟确保DOM完全更新
+      })
+    }
+
     // 修改 addRelation 方法
     const addRelation = () => {
       // 记录当前状态，用于撤销
@@ -1851,6 +1963,9 @@ export default defineComponent({
       expandedRows.value.push(newId)
       // 初始化笔记
       notes.value[newId.toString()] = ''
+      
+      // 自动滚动到新添加的关系行
+      scrollToNewRow(newId)
     }
 
     // 删除关系
@@ -2062,7 +2177,20 @@ export default defineComponent({
       const classes = []
       if (row.isDeleted && row.isOriginal) classes.push('bg-red-1') // 红色背景表示已删除的原始关系
       if (row.isNew) classes.push('bg-green-1') // 绿色背景表示新增
-      if (selectedRow.value === row.id) classes.push('bg-yellow-2') // 选中行的高亮
+      
+      // 根据点击来源决定高亮逻辑
+      if (isTextHighlighting.value) {
+        // 如果是从左侧文本点击触发的，高亮所有文本匹配的行
+        if (selectedText.value && row.text === selectedText.value) {
+          classes.push('row-highlighted')
+        }
+      } else {
+        // 如果是从右侧表格点击触发的，只高亮ID匹配的行
+        if (selectedRow.value === row.id) {
+          classes.push('row-highlighted')
+        }
+      }
+      
       return classes.join(' ')
     }
 
@@ -2486,6 +2614,515 @@ export default defineComponent({
       }
     }
 
+    // 添加文本选择相关的状态
+    const showTextSelectionPrompt = ref(false)
+    const textSelectionPromptPosition = ref({ x: 0, y: 0 })
+    const selectedAbstractText = ref('')
+    const showAddRelationForm = ref(false)
+    
+    // 添加选择指示器相关状态
+    const showSelectionIndicator = ref(false)
+    const selectionIndicatorPosition = ref({ 
+      x: 0, 
+      y: 0,
+      directionOffset: { vertical: 0, horizontal: 0 }
+    })
+    // 保存当前选择的范围信息
+    const currentSelection = ref<Selection | null>(null)
+    // 添加abstract容器边界信息
+    const abstractBounds = ref({
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      width: 0,
+      height: 0
+    })
+    
+    // 计算并更新abstract元素的边界信息
+    const updateAbstractBounds = () => {
+      const abstractEl = document.querySelector('.abstract')
+      if (!abstractEl) return
+      
+      const rect = abstractEl.getBoundingClientRect()
+      abstractBounds.value = {
+        left: rect.left + window.pageXOffset,
+        top: rect.top + window.pageYOffset,
+        right: rect.right + window.pageXOffset,
+        bottom: rect.bottom + window.pageYOffset,
+        width: rect.width,
+        height: rect.height
+      }
+    }
+    
+    // 在组件挂载后更新边界信息
+    onMounted(() => {
+      // ... existing onMounted code ...
+      
+      // 添加窗口大小变化监听，以更新边界
+      window.addEventListener('resize', updateAbstractBounds)
+      
+      // 初始时更新边界
+      nextTick(() => {
+        updateAbstractBounds()
+      })
+    })
+    
+    // 在组件卸载时移除监听器
+    onUnmounted(() => {
+      // ... existing onUnmounted code ...
+      
+      // 移除窗口大小变化监听
+      window.removeEventListener('resize', updateAbstractBounds)
+    })
+    
+    // 在abstract内容变化时更新边界
+    watch([abstract, isEditing], () => {
+      nextTick(() => {
+        updateAbstractBounds()
+      })
+    })
+
+    // 处理Abstract文本选择事件
+    const handleAbstractTextSelection = (event: MouseEvent) => {
+      // 只在编辑模式下启用
+      if (!isEditing.value) return
+      
+      // 阻止事件冒泡，防止触发全局mouseup事件处理
+      // 注意：本地mouseup事件处理先于全局事件处理执行
+      event.stopPropagation()
+      
+      // 获取选择文本
+      const selection = window.getSelection()
+      if (!selection) return // 确保selection不为null
+      
+      const selectedText = selection.toString().trim()
+      
+      // 如果有选择的文本
+      if (selectedText && selection.rangeCount > 0) {
+        // 保存选中的文本和选择对象
+        selectedAbstractText.value = selectedText
+        currentSelection.value = selection
+        
+        // 确保abstract边界信息是最新的
+        updateAbstractBounds()
+        
+        // 检测选择方向
+        const isFromRightToLeft = isSelectionRightToLeft(selection)
+        const isFromBottomToTop = isSelectionBottomToTop(selection)
+        
+        // 计算方向偏移
+        const directionOffset = {
+          // 根据垂直选择方向设置不同的垂直偏移
+          vertical: isFromBottomToTop ? -30 : -15, // 从下往上选择时向上偏移30px，从上往下选择时向上偏移15px
+          horizontal: isFromRightToLeft ? -15 : 15 // 根据水平选择方向添加左右偏移
+        }
+        
+        // 使用鼠标事件位置作为图标位置
+        const mouseX = event.pageX
+        const mouseY = event.pageY
+        
+        // 设置选择指示器位置和方向偏移
+        selectionIndicatorPosition.value = {
+          x: mouseX,
+          y: mouseY,
+          directionOffset: directionOffset
+        }
+        
+        // 显示选择指示器
+        nextTick(() => {
+          showSelectionIndicator.value = true
+        })
+      }
+    }
+    
+    // 检测选择方向：判断是否是从下往上选择
+    const isSelectionBottomToTop = (selection: Selection) => {
+      if (!selection.anchorNode || !selection.focusNode) return false
+      
+      // 如果anchorNode和focusNode是相同的节点，比较偏移量
+      if (selection.anchorNode === selection.focusNode) {
+        return selection.anchorOffset > selection.focusOffset
+      }
+      
+      // 否则，尝试根据DOM中的位置关系判断
+      // 获取范围来判断节点的相对位置
+      const range = document.createRange()
+      
+      try {
+        // 设置范围起点为anchorNode
+        range.setStart(selection.anchorNode, 0)
+        
+        // 检查focusNode是否在anchorNode之前
+        const isForward = range.comparePoint(selection.focusNode, 0) <= 0
+        return !isForward // 如果不是向前选择，则是从下往上
+      } catch (e) {
+        console.error("Error determining selection direction:", e)
+        return false // 默认返回向下选择
+      }
+    }
+    
+    // 检测水平选择方向：判断是否是从右往左选择
+    const isSelectionRightToLeft = (selection: Selection) => {
+      if (!selection.anchorNode || !selection.focusNode) return false
+      
+      // 如果anchorNode和focusNode是相同的节点，比较偏移量
+      if (selection.anchorNode === selection.focusNode) {
+        return selection.anchorOffset > selection.focusOffset
+      }
+      
+      try {
+        // 获取选择的边界矩形
+        if (selection.rangeCount > 0) {
+          // 这个range变量实际上没有使用，删除它以避免ESLint警告
+          // const range = selection.getRangeAt(0)
+          
+          // 创建两个点的范围来比较位置
+          const anchorRange = document.createRange()
+          const focusRange = document.createRange()
+          
+          if (selection.anchorNode.nodeType === Node.TEXT_NODE) {
+            anchorRange.setStart(selection.anchorNode, selection.anchorOffset)
+            anchorRange.setEnd(selection.anchorNode, selection.anchorOffset)
+          } else {
+            // 处理非文本节点
+            anchorRange.selectNodeContents(selection.anchorNode)
+          }
+          
+          if (selection.focusNode.nodeType === Node.TEXT_NODE) {
+            focusRange.setStart(selection.focusNode, selection.focusOffset)
+            focusRange.setEnd(selection.focusNode, selection.focusOffset)
+          } else {
+            // 处理非文本节点
+            focusRange.selectNodeContents(selection.focusNode)
+          }
+          
+          // 获取边界矩形
+          const anchorRect = anchorRange.getBoundingClientRect()
+          const focusRect = focusRange.getBoundingClientRect()
+          
+          // 比较水平位置
+          if (Math.abs(anchorRect.left - focusRect.left) > 5) { // 添加一个阈值，避免微小差异
+            return anchorRect.left > focusRect.left
+          }
+        }
+        
+        // 如果无法通过位置判断，则使用与垂直方向相同的逻辑
+        const range = document.createRange()
+        range.setStart(selection.anchorNode, 0)
+        const isForward = range.comparePoint(selection.focusNode, 0) <= 0
+        return !isForward
+      } catch (e) {
+        console.error("Error determining horizontal selection direction:", e)
+        return false // 默认返回从左往右
+      }
+    }
+    
+    // 处理选择指示器点击事件
+    const handleSelectionIndicatorClick = () => {
+      // 隐藏选择指示器
+      showSelectionIndicator.value = false
+      
+      if (!currentSelection.value || currentSelection.value.rangeCount === 0) return
+      
+      // 获取选择的范围信息
+      const range = currentSelection.value.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      
+      // 设置提示框位置
+      textSelectionPromptPosition.value = {
+        x: rect.left + (rect.width / 2),
+        y: rect.top
+      }
+      
+      // 显示提示框
+      showTextSelectionPrompt.value = true
+    }
+    
+    // 取消文本选择
+    const cancelTextSelection = () => {
+      showTextSelectionPrompt.value = false
+      showSelectionIndicator.value = false
+      selectedAbstractText.value = ''
+      currentSelection.value = null
+      // 清除选择
+      const selection = window.getSelection()
+      if (selection) {
+        selection.removeAllRanges()
+      }
+    }
+    
+    // 处理从选择文本添加新的relation
+    const handleAddRelationFromSelection = (formData: RelationFormData) => {
+      // 记录当前状态，用于撤销
+      recordCurrentState()
+      
+      // 创建新的relation
+      const newId = Math.max(...tableData.value.map((row) => row.id), 0) + 1
+      const newRelation = {
+        id: newId,
+        section: `Relation ${newId - 2}`,
+        head: formData.head,
+        tail: formData.tail,
+        label: formData.relation,
+        text: formData.text,
+        note: formData.note,
+        metaRelations: formData.metaRelations,
+        showNote: false,
+      }
+      
+      // 添加到tableData
+      tableData.value.push(newRelation)
+      
+      // 展开新添加的行
+      expandedRows.value.push(newId)
+      
+      // 关闭表单
+      showAddRelationForm.value = false
+      
+      // 清除选择
+      cancelTextSelection()
+      
+      // 自动滚动到新添加的关系行
+      scrollToNewRow(newId)
+    }
+    
+    // 取消添加relation
+    const cancelAddRelation = () => {
+      showAddRelationForm.value = false
+      // 清除选择
+      cancelTextSelection()
+    }
+
+    // 全局鼠标释放事件处理，解决鼠标在文本区域外释放的问题
+    const handleGlobalMouseUp = (event: MouseEvent) => {
+      // 只在编辑模式下处理
+      if (!isEditing.value) return
+      
+      // 获取当前选择
+      const selection = window.getSelection()
+      if (!selection) return
+      
+      // 检查是否有选择文本
+      const selectedText = selection.toString().trim()
+      
+      // 如果有选择的文本，处理选择
+      if (selectedText && selection.rangeCount > 0) {
+        // 保存选中文本和选择范围
+        selectedAbstractText.value = selectedText
+        currentSelection.value = selection
+        
+        // 使用鼠标释放位置作为图标位置
+        const mouseX = event.pageX
+        const mouseY = event.pageY
+        
+        // 获取abstract元素以检查选择是否与之相关
+        const abstractEl = document.querySelector('.abstract')
+        if (!abstractEl) return
+        
+        // 确保abstract边界信息是最新的
+        updateAbstractBounds()
+        
+        // 检查选择是否与abstract元素相关
+        const range = selection.getRangeAt(0)
+        let isAbstractSelection = false
+        
+        // 使用contains方法检查abstract是否包含选择中的任一节点
+        try {
+          // 获取选择中的文本节点
+          const startContainer = range.startContainer
+          const endContainer = range.endContainer
+          
+          // 检查是否在abstract元素内
+          isAbstractSelection = 
+            abstractEl.contains(startContainer) || 
+            abstractEl.contains(endContainer)
+        } catch (e) {
+          console.error("Error checking selection:", e)
+        }
+        
+        // 如果选择与abstract元素相关，显示选择指示器
+        if (isAbstractSelection) {
+          // 检测选择方向
+          const isFromRightToLeft = isSelectionRightToLeft(selection)
+          const isFromBottomToTop = isSelectionBottomToTop(selection)
+          
+          // 计算方向偏移
+          const directionOffset = {
+            // 根据垂直选择方向设置不同的垂直偏移
+            vertical: isFromBottomToTop ? -45 : -25, // 从下往上选择时向上偏移30px，从上往下选择时向上偏移15px
+            horizontal: isFromRightToLeft ? -15 : 15 // 根据水平选择方向添加左右偏移
+          }
+          
+          // 设置选择指示器位置和方向偏移
+          selectionIndicatorPosition.value = {
+            x: mouseX,
+            y: mouseY,
+            directionOffset: directionOffset
+          }
+          
+          // 显示选择指示器
+          nextTick(() => {
+            showSelectionIndicator.value = true
+          })
+        }
+      }
+    }
+
+    /**
+     * 处理点击左侧高亮文本的事件
+     * 查找并高亮对应的右侧relation
+     */
+    const handleHighlightedTextClick = (event: MouseEvent) => {
+      // 检查点击的元素是否为高亮元素
+      const clickedElement = event.target as HTMLElement
+      
+      // 只处理点击了高亮元素的情况
+      if (clickedElement && (
+          clickedElement.classList.contains('default-highlighted') || 
+          clickedElement.classList.contains('hover-highlighted') || 
+          clickedElement.classList.contains('highlighted')
+      )) {
+        // 设置标志，表示这是通过点击左侧文本触发的高亮
+        isTextHighlighting.value = true
+        
+        // 获取点击的文本内容
+        const clickedText = clickedElement.textContent || ''
+        
+        if (clickedText) {
+          // 如果点击的文本与当前已选中的文本相同，则取消选中
+          if (clickedText === selectedText.value) {
+            selectedRow.value = -1
+            selectedText.value = ''
+            // 重置高亮标志，确保取消高亮状态
+            isTextHighlighting.value = false
+            // 阻止事件冒泡和默认行为
+            event.stopPropagation()
+            event.preventDefault()
+            return
+          }
+        
+          // 查找所有匹配该文本的relation行（使用filter替代find，找出所有匹配的行）
+          const matchingRows = tableData.value.filter(row => row.text === clickedText)
+          
+          if (matchingRows.length > 0) {
+            // 保存所有匹配行的ID，以便在getRowClass中使用
+            // 使用第一个匹配行的文本作为选中文本
+            selectedRow.value = matchingRows[0]?.id || -1
+            selectedText.value = matchingRows[0]?.text || ''
+            
+            // 处理每一个匹配的行 - 只处理滚动，不再添加临时闪烁效果
+            matchingRows.forEach((row, index) => {
+              nextTick(() => {
+                const rowElement = document.querySelector(`[data-row-id="${row.id}"]`)
+                if (rowElement && index === 0) { // 只滚动到第一个匹配行
+                  // 获取滚动容器
+                  const scrollContainer = document.querySelector('.analysis-scroll')
+                  if (scrollContainer) {
+                    // 记录当前页面滚动位置
+                    const scrollY = window.scrollY
+                    
+                    // 滚动表格容器而不是整个页面
+                    const rowRect = rowElement.getBoundingClientRect()
+                    const containerRect = scrollContainer.getBoundingClientRect()
+                    
+                    // 计算行元素相对于容器的位置
+                    const relativeTop = rowRect.top - containerRect.top
+                    
+                    // 滚动容器到该位置（居中显示行）
+                    scrollContainer.scrollBy({
+                      top: relativeTop - containerRect.height / 2 + rowRect.height / 2,
+                      behavior: 'smooth'
+                    })
+                    
+                    // 确保页面滚动位置不变
+                    setTimeout(() => {
+                      window.scrollTo(0, scrollY)
+                    }, 10)
+                  }
+                }
+              })
+            })
+          } else {
+            // 如果点击的高亮文本内容与表格中的行不完全匹配
+            // 尝试找到包含该文本的行，或该文本包含的行
+            // 这是因为高亮文本可能只是行文本的一部分
+            let bestMatchingRows: TableRow[] = []
+            let bestMatchScore = 0
+            
+            for (const row of tableData.value) {
+              if (row.text) {
+                // 计算相似度得分
+                let score = 0
+                if (row.text.includes(clickedText)) {
+                  // 如果行文本包含点击的文本，得分为点击文本长度比例
+                  score = clickedText.length / row.text.length
+                } else if (clickedText.includes(row.text)) {
+                  // 如果点击的文本包含行文本，得分为行文本长度比例
+                  score = row.text.length / clickedText.length
+                }
+                
+                // 如果分数超过阈值且等于当前最佳分数，添加到最佳匹配行列表
+                if (score > 0.5 && Math.abs(score - bestMatchScore) < 0.01) {
+                  bestMatchingRows.push(row)
+                }
+                // 如果找到了更好的匹配，清空列表并添加新的最佳匹配
+                else if (score > bestMatchScore && score > 0.5) {
+                  bestMatchScore = score
+                  bestMatchingRows = [row]
+                }
+              }
+            }
+            
+            // 如果找到了好的匹配
+            if (bestMatchingRows.length > 0) {
+              // 使用第一个最佳匹配行的ID和文本作为选中状态
+              selectedRow.value = bestMatchingRows[0]?.id || -1
+              selectedText.value = bestMatchingRows[0]?.text || ''
+              
+              // 处理每一个最佳匹配的行 - 只处理滚动，不再添加临时闪烁效果
+              bestMatchingRows.forEach((row, index) => {
+                nextTick(() => {
+                  const rowElement = document.querySelector(`[data-row-id="${row.id}"]`)
+                  if (rowElement && index === 0) { // 只滚动到第一个匹配行
+                    // 获取滚动容器
+                    const scrollContainer = document.querySelector('.analysis-scroll')
+                    if (scrollContainer) {
+                      // 记录当前页面滚动位置
+                      const scrollY = window.scrollY
+                      
+                      // 滚动表格容器而不是整个页面
+                      const rowRect = rowElement.getBoundingClientRect()
+                      const containerRect = scrollContainer.getBoundingClientRect()
+                      
+                      // 计算行元素相对于容器的位置
+                      const relativeTop = rowRect.top - containerRect.top
+                      
+                      // 滚动容器到该位置（居中显示行）
+                      scrollContainer.scrollBy({
+                        top: relativeTop - containerRect.height / 2 + rowRect.height / 2,
+                        behavior: 'smooth'
+                      })
+                      
+                      // 确保页面滚动位置不变
+                      setTimeout(() => {
+                        window.scrollTo(0, scrollY)
+                      }, 10)
+                    }
+                  }
+                })
+              })
+            }
+          }
+        }
+        
+        // 阻止事件冒泡，避免触发页面点击事件导致高亮消失
+        event.stopPropagation()
+        // 阻止默认事件，避免页面滚动
+        event.preventDefault()
+      }
+    }
+
     return {
       paperUrl,
       title,
@@ -2570,6 +3207,28 @@ export default defineComponent({
       isGraphView,
       toggleGraphView,
       showBottomGraph,
+      // 文本选择相关状态和方法
+      showTextSelectionPrompt,
+      textSelectionPromptPosition,
+      selectedAbstractText,
+      showAddRelationForm,
+      handleAbstractTextSelection,
+      cancelTextSelection,
+      handleAddRelationFromSelection,
+      cancelAddRelation,
+      
+      // 选择指示器相关状态和方法
+      showSelectionIndicator,
+      selectionIndicatorPosition,
+      handleSelectionIndicatorClick,
+      
+      // 添加abstract边界信息和更新方法
+      abstractBounds,
+      updateAbstractBounds,
+      
+      // 添加处理左侧高亮文本点击的方法
+      handleHighlightedTextClick,
+      isTextHighlighting // 添加到返回值中
     }
   },
 })
@@ -3020,6 +3679,7 @@ export default defineComponent({
     transition: background-color 0.3s ease;
     position: relative;
     z-index: 2;
+    cursor: pointer; /* 添加鼠标指针样式以表明可点击 */
   }
 
   :deep(.hover-highlighted) {
@@ -3027,6 +3687,15 @@ export default defineComponent({
     transition: background-color 0.3s ease;
     position: relative;
     z-index: 2;
+    cursor: pointer; /* 添加鼠标指针样式以表明可点击 */
+  }
+
+  :deep(.default-highlighted) {
+    background-color: rgba(255, 152, 0, 0.3);
+    transition: background-color 0.3s ease;
+    position: relative;
+    z-index: 1;
+    cursor: pointer; /* 添加鼠标指针样式以表明可点击 */
   }
 }
 
@@ -4003,5 +4672,87 @@ html .note-popup,
   }
   margin: 0 auto; /* 确保按钮居中 */
   padding: 8px 16px; /* 增加内边距 */
+}
+
+/* 添加文本选择相关样式 */
+.abstract {
+  user-select: text; /* 确保文本可选择 */
+  cursor: text;
+  line-height: 1.6;
+}
+
+.highlighted {
+  background-color: #ffeb3b;
+  padding: 2px 0;
+  border-radius: 2px;
+  cursor: pointer; /* 添加鼠标指针样式以表明可点击 */
+}
+
+.hover-highlighted {
+  background-color: #e3f2fd;
+  padding: 2px 0;
+  border-radius: 2px;
+  cursor: pointer; /* 添加鼠标指针样式以表明可点击 */
+}
+
+.default-highlighted {
+  background-color: rgba(255, 152, 0, 0.3);
+  padding: 2px 0;
+  border-radius: 2px;
+  cursor: pointer; /* 添加鼠标指针样式以表明可点击 */
+}
+
+/* 添加右侧表格行高亮样式，使用与左侧文本高亮相同的颜色 */
+.row-highlighted {
+  background-color: rgba(255, 183, 77, 0.2) !important;
+}
+
+/* 表格行闪烁高亮效果 */
+.flash-highlight {
+  animation: flash-animation 2s ease;
+}
+
+@keyframes flash-animation {
+  0%, 100% {
+    background-color: transparent;
+  }
+  25%, 75% {
+    background-color: rgba(255, 152, 0, 0.4);
+  }
+  50% {
+    background-color: rgba(255, 152, 0, 0.6);
+  }
+}
+
+/* 为新添加的行创建高亮效果的样式 */
+.highlight-new-row {
+  animation: highlight-animation 3s ease;
+}
+
+@keyframes highlight-animation {
+  0% {
+    background-color: rgba(255, 255, 0, 0.3);
+  }
+  50% {
+    background-color: rgba(255, 255, 0, 0.5);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/* 确保文本选择提示框位置正确 */
+.q-dialog__inner > div {
+  overflow: visible !important;
+}
+
+.flash-highlight {
+  animation: highlight-flash 2s ease;
+}
+
+@keyframes highlight-flash {
+  0% { background-color: rgba(255, 87, 34, 0.8); }
+  50% { background-color: rgba(255, 87, 34, 0.4); }
+  100% { background-color: rgba(255, 187, 0, 0.2); }
 }
 </style>

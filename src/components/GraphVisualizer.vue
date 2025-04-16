@@ -18,6 +18,7 @@
     
     <div class="controls">
       <button @click="fetchGraphData" class="btn">Refresh Graph</button>
+      <button @click="toggleAbstractDisplay" class="btn">{{ showAbstract ? 'Hide' : 'Show' }} Abstract</button>
       <button @click="startAddNode" class="btn">Add Node</button>
       <button @click="toggleEdgeLabels" class="btn">{{ showEdgeLabels ? 'Hide' : 'Show' }} Edge Labels</button>
       <button @click="toggleFreezeGraph" class="btn">{{ isFrozen ? 'Unfreeze' : 'Freeze' }} Graph</button>
@@ -37,6 +38,15 @@
         <button @click="closeRelationTextWindow" class="close-btn">&times;</button>
       </div>
       <div class="relation-text-content" v-html="highlightedAbstract"></div>
+    </div>
+    
+    <!-- Abstract display window -->
+    <div v-if="showAbstract" class="relation-text-window abstract-window">
+      <div class="relation-text-header">
+        <div class="paper-title">{{ paperTitle }} - Abstract</div>
+        <button @click="toggleAbstractDisplay" class="close-btn">&times;</button>
+      </div>
+      <div class="relation-text-content">{{ paperAbstract }}</div>
     </div>
     
     <!-- Supporting text selection window -->
@@ -168,6 +178,7 @@ export default {
       height: 600,
       showEdgeLabels: true,
       isFrozen: false,
+      showAbstract: false, // 添加摘要显示控制状态
       
       // 添加tooltip状态
       nodeTooltip: null,
@@ -293,6 +304,9 @@ export default {
     async fetchGraphData() {
       this.loading = true;
       this.error = null;
+      
+      // 重置冻结状态，因为这是完全刷新图表
+      this.isFrozen = false;
       
       // Clear existing visualization
       if (this.simulation) {
@@ -438,15 +452,33 @@ export default {
             node.fx = node.x;
             node.fy = node.y;
           });
+          console.log("Graph frozen by user action");
         } else {
           // Unfreeze all nodes and restart the simulation
           this.simulation.nodes().forEach(node => {
             // Release fixed positions
             node.fx = null;
             node.fy = null;
+            // 清理可能存在的临时位置属性
+            delete node._prevX;
+            delete node._prevY;
           });
           this.simulation.alpha(0.3).restart();
+          console.log("Graph unfrozen by user action");
         }
+      }
+    },
+    toggleAbstractDisplay() {
+      this.showAbstract = !this.showAbstract;
+      
+      // 如果打开摘要显示并且同时有关系文本窗口打开，关闭关系文本窗口
+      if (this.showAbstract && this.selectedRelationText) {
+        this.selectedRelationText = null;
+      }
+      
+      // 重置高亮，确保图表看起来清晰
+      if (this.showAbstract) {
+        this.resetHighlights();
       }
     },
     resetHighlights() {
@@ -522,6 +554,24 @@ export default {
     },
     renderGraph() {
       if (!this.graphData || !this.graphData.relations) return;
+      
+      // 在渲染前保存冻结状态
+      const wasFrozen = this.isFrozen;
+      
+      // 临时解除冻结以允许新布局
+      if (wasFrozen) {
+        // 不改变isFrozen标志，只临时解除物理固定
+        if (this.simulation) {
+          this.simulation.nodes().forEach(node => {
+            // 保存当前位置，以便稍后重新冻结
+            node._prevX = node.x;
+            node._prevY = node.y;
+            // 临时释放固定位置允许布局
+            node.fx = null;
+            node.fy = null;
+          });
+        }
+      }
       
       // Clear previous graph
       const container = this.$refs.graphContainer;
@@ -1104,9 +1154,30 @@ export default {
       // Store the observer to disconnect it later
       this._circleObserver = observer;
       
-      // If the graph was frozen before, freeze it again
-      if (this.isFrozen) {
-        this.toggleFreezeGraph();
+      // 如果之前处于冻结状态，重新应用冻结
+      if (wasFrozen) {
+        // 等待短暂时间让新节点找到合适位置
+        setTimeout(() => {
+          // 如果用户没有手动解除冻结，则重新冻结图表
+          if (this.isFrozen) {
+            this.simulation.stop();
+            this.simulation.nodes().forEach(node => {
+              // 对现有节点使用之前的位置
+              if (node._prevX !== undefined && node._prevY !== undefined) {
+                node.fx = node._prevX;
+                node.fy = node._prevY;
+                // 清理临时属性
+                delete node._prevX;
+                delete node._prevY;
+              } else {
+                // 新节点使用当前位置固定
+                node.fx = node.x;
+                node.fy = node.y;
+              }
+            });
+            console.log("Re-applied frozen state after graph update");
+          }
+        }, 1000); // 给予1秒时间让力导向布局优化新节点位置
       }
     },
     dragstarted(event, d) {
@@ -2416,7 +2487,17 @@ export default {
       console.log(`Added relation: ${sourceId} -> ${targetId}, label: ${label}, text: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`);
       
       this.hasUnsavedChanges = true;
+      
+      // 保存冻结状态，以便在渲染后恢复
+      const wasFrozen = this.isFrozen;
+      
+      // 渲染图表
       this.renderGraph();
+      
+      // 如果原本是冻结状态，提示用户
+      if (wasFrozen) {
+        this.showEditFeedback('Relation added. Graph will remain frozen after brief layout adjustment.', 'success');
+      }
     },
     
     addMetaRelation(sourceRelation, targetNodeId, label) {
@@ -2467,11 +2548,18 @@ export default {
       // Mark changes as unsaved
       this.hasUnsavedChanges = true;
       
-      // Show success message
-      this.showEditFeedback('Meta-relation added successfully', 'success');
+      // 保存冻结状态，以便在渲染后恢复
+      const wasFrozen = this.isFrozen;
       
       // Re-render the graph
       this.renderGraph();
+      
+      // 显示成功信息，包括冻结状态提示
+      if (wasFrozen) {
+        this.showEditFeedback('Meta-relation added. Graph will remain frozen after brief layout adjustment.', 'success');
+      } else {
+        this.showEditFeedback('Meta-relation added successfully', 'success');
+      }
     },
     
     editRelationLabel(relation, newLabel) {
@@ -3097,6 +3185,12 @@ export default {
     
     // 添加从新节点开始连接的方法
     startConnectionFromNewNode() {
+      // 记录当前状态用于撤销操作
+      this.recordCurrentState();
+      
+      // 保存冻结状态，以便在渲染后恢复
+      const wasFrozen = this.isFrozen;
+      
       // 首先添加节点到图中以便可视化
       this.graphData.nodes.push(this.pendingNodeData);
       this.renderGraph(); // 重新渲染图以显示新节点
@@ -3141,7 +3235,11 @@ export default {
       // 已经在模板中实现了
       
       // 显示成功消息
-      this.showEditFeedback('New node added. Now connect it to another node.', 'success');
+      if (wasFrozen) {
+        this.showEditFeedback('New node added. Now connect it to another node. Graph will remain frozen after brief layout adjustment.', 'success');
+      } else {
+        this.showEditFeedback('New node added. Now connect it to another node.', 'success');
+      }
     },
     // Add undo, redo, and history tracking methods
     recordCurrentState() {
@@ -3906,5 +4004,53 @@ mark:hover {
 .history-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Abstract display window styles */
+.relation-text-window.abstract-window {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 500px;
+  height: 520px;
+  background-color: rgba(255, 255, 255, 0.6); /* 调整透明度以保持可读性 */
+  border-radius: 8px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  overflow: hidden;
+  animation: fadeIn 0.3s ease-out;
+  padding: 15px;
+  border: 1px solid rgba(0, 0, 0, 0.2); /* 加深边框颜色增加边界可见度 */
+}
+
+.relation-text-header.abstract-window {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.paper-title.abstract-window {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.95); /* 加深文字颜色 */
+  line-height: 1.4;
+  margin-right: 20px;
+  flex: 1;
+  max-height: 60px;
+  overflow-y: auto;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8); /* 增强文字阴影 */
+}
+
+.relation-text-content.abstract-window {
+  height: calc(100% - 70px);
+  overflow-y: auto;
+  line-height: 1.6;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.9); /* 加深文字颜色 */
+  padding-right: 5px;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8); /* 增强文字阴影 */
 }
 </style> 
