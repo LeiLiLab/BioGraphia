@@ -2564,7 +2564,7 @@ export default defineComponent({
       update(() => {
         const needle = val.toLowerCase()
         nodesOptionsList.value = nodesRelationsData.nodes.filter(
-          v => v.toLowerCase().indexOf(needle) > -1
+          v => (v as string).toLowerCase().indexOf(needle) > -1
         )
       })
     }
@@ -2581,7 +2581,7 @@ export default defineComponent({
       update(() => {
         const needle = val.toLowerCase()
         relationsOptionsList.value = nodesRelationsData.relations.filter(
-          v => v.toLowerCase().indexOf(needle) > -1
+          v => (v as string).toLowerCase().indexOf(needle) > -1
         )
       })
     }

@@ -747,19 +747,51 @@
         </div>
       </q-card-section>
       <q-card-actions align="right">
-        <q-btn label="CANCEL" color="negative" flat v-close-popup @click="resetUploadForm" />
-        <q-btn 
-          label="UPLOAD" 
-          color="primary" 
-          @click="triggerFileUpload"
-          :loading="uploading"
-          :disable="uploading"
-        >
-          <q-tooltip>Click to upload json file.</q-tooltip>
-          <template v-slot:loading>
-            <q-spinner-dots />
-          </template>
-        </q-btn>
+        <div class="row full-width justify-between">
+          <!-- 左侧按钮 -->
+          <div>
+            <q-btn 
+              label="RESET" 
+              color="warning" 
+              @click="confirmReset"
+              :disable="loading || currentData.length === 0"
+              class="q-mr-md"
+            >
+              <q-tooltip>Reset all {{ uploadType }} data</q-tooltip>
+            </q-btn>
+            <q-btn 
+              label="EXPORT" 
+              color="positive" 
+              @click="exportData"
+              :disable="loading || currentData.length === 0"
+            >
+              <q-tooltip>Export {{ uploadType }} data as JSON</q-tooltip>
+            </q-btn>
+          </div>
+          
+          <!-- 右侧按钮 -->
+          <div>
+            <q-btn 
+              label="CANCEL" 
+              color="negative" 
+              v-close-popup 
+              @click="resetUploadForm" 
+              class="q-mr-md"
+            />
+            <q-btn 
+              label="UPLOAD" 
+              color="primary" 
+              @click="triggerFileUpload"
+              :loading="uploading"
+              :disable="uploading"
+            >
+              <q-tooltip>Click to upload json file.</q-tooltip>
+              <template v-slot:loading>
+                <q-spinner-dots />
+              </template>
+            </q-btn>
+          </div>
+        </div>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -867,6 +899,8 @@ export default defineComponent({
     const currentData = ref([]);
     const loading = ref(false);
     const errorMessage = ref('');
+    const uploading = ref(false);
+    const fileInput = ref<HTMLInputElement | null>(null);
     
     // 知识库上传相关方法
     const showKnowledgeBaseOptions = () => {
@@ -1836,7 +1870,6 @@ export default defineComponent({
     const showProgress = ref(false);
     const currentPosition = ref(0);
     const totalPapers = ref(0);
-    const fileInput = ref<HTMLInputElement | null>(null);
     
     // 添加状态检查计时器变量
     let statusCheckInterval: number | NodeJS.Timeout | null = null;
@@ -2158,9 +2191,6 @@ export default defineComponent({
       }
     };
 
-    // 添加上传状态变量
-    const uploading = ref(false);
-
     // 修改文件选择和上传相关方法
     const triggerFileUpload = () => {
       fileInput.value?.click();
@@ -2233,6 +2263,103 @@ export default defineComponent({
         uploading.value = false;
         // 清空文件输入框
         input.value = '';
+      }
+    };
+
+    // 确认重置知识库数据
+    const confirmReset = () => {
+      $q.dialog({
+        title: 'Confirm Reset',
+        message: `Are you sure you want to reset all ${uploadType.value}s? This action cannot be undone and will delete all ${uploadType.value}s from the knowledge base.`,
+        cancel: {
+          color: 'negative',
+          label: 'CANCEL',
+          flat: false
+        },
+        ok: {
+          color: 'positive',
+          label: 'OK',
+          flat: false
+        },
+        persistent: true
+      }).onOk(() => {
+        resetKnowledgeBase();
+      });
+    };
+    
+    // 重置知识库数据
+    const resetKnowledgeBase = async () => {
+      loading.value = true;
+      try {
+        const response = await axios.post(getApiUrl('/api/reset-knowledge-base'), { 
+          type: uploadType.value 
+        });
+        
+        // 显示成功通知
+        $q.notify({
+          type: 'positive',
+          message: response.data.message || `All ${uploadType.value}s have been reset successfully`,
+          position: 'top',
+          html: true,
+          timeout: 3000
+        });
+        
+        // 更新显示的数据
+        await fetchKnowledgeBaseData(uploadType.value);
+      } catch (error) {
+        console.error('Failed to reset knowledge base:', error);
+        
+        let errorMsg = 'An unexpected error occurred. Please try again.';
+        if (error && typeof error === 'object' && 'response' in error && 
+            error.response && typeof error.response === 'object' && 'data' in error.response) {
+          const response = error.response as { data: { message?: string, error?: string } };
+          errorMsg = response.data.message || response.data.error || errorMsg;
+        }
+        
+        // 显示错误通知
+        $q.notify({
+          type: 'negative',
+          message: errorMsg,
+          position: 'top',
+          html: true,
+          timeout: 3000
+        });
+      } finally {
+        loading.value = false;
+      }
+    };
+    
+    // 导出知识库数据
+    const exportData = () => {
+      try {
+        // 构建导出URL
+        const exportUrl = `${BACKEND_URL}/api/export-knowledge-base?type=${uploadType.value}`;
+        
+        // 创建一个隐藏的a标签，并触发下载
+        const link = document.createElement('a');
+        link.href = exportUrl;
+        link.download = `${uploadType.value}s.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // 显示成功通知
+        $q.notify({
+          type: 'positive',
+          message: `Exporting ${uploadType.value} data as JSON`,
+          position: 'top',
+          timeout: 2000
+        });
+      } catch (error) {
+        console.error('Failed to export knowledge base:', error);
+        
+        // 显示错误通知
+        $q.notify({
+          type: 'negative',
+          message: 'Failed to export data. Please try again.',
+          position: 'top',
+          timeout: 3000
+        });
       }
     };
 
@@ -2343,7 +2470,10 @@ export default defineComponent({
       goToPage,
       uploading,
       triggerFileUpload,
-      onFileSelected
+      onFileSelected,
+      confirmReset,
+      resetKnowledgeBase,
+      exportData
     }
   }
 })

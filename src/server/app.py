@@ -6,7 +6,7 @@ import sys
 import shutil
 from urllib.parse import urlparse
 import time
-from queue import Queue
+from queue import Queue, Empty
 from threading import Thread, Lock
 from concurrent.futures import ThreadPoolExecutor
 from collections import OrderedDict
@@ -3564,6 +3564,121 @@ def upload_knowledge_base():
         print(f"Error uploading knowledge base: {str(e)}")
         return jsonify({"error": f"Failed to process upload: {str(e)}"}), 500
     
+@app.route('/api/reset-knowledge-base', methods=['POST'])
+def reset_knowledge_base():
+    """删除所有指定类型的知识库数据（节点或关系）"""
+    try:
+        # 获取请求中的类型参数
+        data_type = request.json.get('type', 'node')
+        if data_type not in ['node', 'relation']:
+            return jsonify({"error": "Invalid type parameter. Must be 'node' or 'relation'"}), 400
+        
+        # 确定知识库文件路径
+        file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'nodes_relations_database.json')
+        
+        if not os.path.exists(os.path.dirname(file_path)):
+            print(f"Warning: Directory does not exist: {os.path.dirname(file_path)}")
+            # 尝试使用用户提供的绝对路径
+            file_path = '/home/ec2-user/work/temp_fix_folder/data/nodes_relations_database.json'
+            print(f"Using alternative path: {file_path}")
+            
+        # 读取当前知识库数据
+        current_data = {}
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    current_data = json.load(f)
+            except:
+                print(f"Could not read existing knowledge base file")
+                current_data = {"nodes": [], "relations": []}
+        else:
+            current_data = {"nodes": [], "relations": []}
+        
+        # 获取重置前的数据项数量
+        items_count = len(current_data.get('nodes' if data_type == 'node' else 'relations', []))
+        
+        # 根据类型重置数据
+        if data_type == 'node':
+            current_data['nodes'] = []
+            print(f"Reset all nodes in knowledge base")
+        else:  # data_type == 'relation'
+            current_data['relations'] = []
+            print(f"Reset all relations in knowledge base")
+        
+        # 保存更新后的数据
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(current_data, f, indent=2)
+        
+        print(f"Knowledge base data saved to {file_path}")
+        return jsonify({
+            "success": True, 
+            "message": f"Successfully reset all {data_type}s in knowledge base",
+            "removed_count": items_count
+        })
+        
+    except Exception as e:
+        print(f"Error resetting knowledge base: {str(e)}")
+        return jsonify({"error": f"Failed to reset knowledge base: {str(e)}"}), 500
+
+@app.route('/api/export-knowledge-base', methods=['GET'])
+def export_knowledge_base():
+    """导出所有指定类型的知识库数据（节点或关系）"""
+    try:
+        # 获取请求中的类型参数
+        data_type = request.args.get('type', 'node')
+        if data_type not in ['node', 'relation']:
+            return jsonify({"error": "Invalid type parameter. Must be 'node' or 'relation'"}), 400
+        
+        # 确定知识库文件路径
+        file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'nodes_relations_database.json')
+        
+        if not os.path.exists(os.path.dirname(file_path)):
+            print(f"Warning: Directory does not exist: {os.path.dirname(file_path)}")
+            # 尝试使用用户提供的绝对路径
+            file_path = '/home/ec2-user/work/temp_fix_folder/data/nodes_relations_database.json'
+            print(f"Using alternative path: {file_path}")
+            
+            if not os.path.exists(file_path):
+                print(f"Error: Knowledge base file not found")
+                return jsonify({"error": "Knowledge base file not found"}), 404
+        
+        # 读取当前知识库数据
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                current_data = json.load(f)
+        except:
+            print(f"Could not read existing knowledge base file")
+            return jsonify({"error": "Failed to read knowledge base file"}), 500
+        
+        # 根据类型获取数据
+        export_data = {}
+        if data_type == 'node':
+            export_data = {"nodes": current_data.get('nodes', [])}
+            filename = "nodes.json"
+        else:  # data_type == 'relation'
+            export_data = {"relations": current_data.get('relations', [])}
+            filename = "relations.json"
+        
+        # 将数据转换为JSON字符串
+        json_str = json.dumps(export_data, indent=2)
+        
+        # 创建一个内存文件对象，并写入JSON数据
+        mem_file = io.BytesIO()
+        mem_file.write(json_str.encode('utf-8'))
+        mem_file.seek(0)
+        
+        # 返回JSON文件下载
+        return send_file(
+            mem_file,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/json'
+        )
+        
+    except Exception as e:
+        print(f"Error exporting knowledge base: {str(e)}")
+        return jsonify({"error": f"Failed to export knowledge base: {str(e)}"}), 500
+
 # Start the application
 if __name__ == '__main__':
     from dotenv import load_dotenv

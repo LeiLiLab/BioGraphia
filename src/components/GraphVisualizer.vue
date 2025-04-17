@@ -558,19 +558,15 @@ export default {
       // 在渲染前保存冻结状态
       const wasFrozen = this.isFrozen;
       
-      // 临时解除冻结以允许新布局
-      if (wasFrozen) {
-        // 不改变isFrozen标志，只临时解除物理固定
-        if (this.simulation) {
-          this.simulation.nodes().forEach(node => {
-            // 保存当前位置，以便稍后重新冻结
-            node._prevX = node.x;
-            node._prevY = node.y;
-            // 临时释放固定位置允许布局
-            node.fx = null;
-            node.fy = null;
-          });
-        }
+      // 保存所有现有节点的位置
+      const existingNodePositions = {};
+      if (wasFrozen && this.simulation) {
+        this.simulation.nodes().forEach(node => {
+          existingNodePositions[node.id] = {
+            x: node.x,
+            y: node.y
+          };
+        });
       }
       
       // Clear previous graph
@@ -653,6 +649,43 @@ export default {
       // Store nodes in graphData for later reference
       this.graphData.nodes = nodes;
       
+      // 在冻结状态下，恢复已有节点的位置
+      if (wasFrozen) {
+        nodes.forEach(node => {
+          if (existingNodePositions[node.id]) {
+            node.x = existingNodePositions[node.id].x;
+            node.y = existingNodePositions[node.id].y;
+            // 预设固定位置，防止力导向布局移动已有节点
+            node.fx = existingNodePositions[node.id].x;
+            node.fy = existingNodePositions[node.id].y;
+          } else {
+            // 对于新节点，在视图中央周围随机位置
+            node.x = this.width / 2 + (Math.random() - 0.5) * 200;
+            node.y = this.height / 2 + (Math.random() - 0.5) * 200;
+            // 新节点不固定位置，让力导向布局来定位
+            node.fx = null;
+            node.fy = null;
+          }
+        });
+      } else {
+        // 非冻结状态下，初始化所有节点位置
+        nodes.forEach((node, i) => {
+          // Position nodes in a circle initially with more spacing
+          const angle = (i / nodes.length) * 2 * Math.PI;
+          const radius = Math.min(this.width, this.height) * 0.45; // Increased from 0.4
+          node.x = this.width / 2 + radius * Math.cos(angle);
+          node.y = this.height / 2 + radius * Math.sin(angle);
+          
+          // Add some random jitter to prevent perfect circle alignment
+          node.x += (Math.random() - 0.5) * 50;
+          node.y += (Math.random() - 0.5) * 50;
+          
+          // 非冻结状态下，节点位置不固定
+          node.fx = null;
+          node.fy = null;
+        });
+      }
+      
       // Validate links - ensure all source and target IDs exist as nodes
       const nodeIds = new Set(nodes.map(node => node.id));
       const validLinks = links.filter(link => {
@@ -670,19 +703,6 @@ export default {
           console.warn('Removing invalid metaLink - target node not found:', link);
         }
         return isValid;
-      });
-      
-      // Initial positioning to spread nodes out
-      nodes.forEach((node, i) => {
-        // Position nodes in a circle initially with more spacing
-        const angle = (i / nodes.length) * 2 * Math.PI;
-        const radius = Math.min(this.width, this.height) * 0.45; // Increased from 0.4
-        node.x = this.width / 2 + radius * Math.cos(angle);
-        node.y = this.height / 2 + radius * Math.sin(angle);
-        
-        // Add some random jitter to prevent perfect circle alignment
-        node.x += (Math.random() - 0.5) * 50;
-        node.y += (Math.random() - 0.5) * 50;
       });
       
       // Create SVG
@@ -1154,30 +1174,21 @@ export default {
       // Store the observer to disconnect it later
       this._circleObserver = observer;
       
-      // 如果之前处于冻结状态，重新应用冻结
+      // 如果之前处于冻结状态，立即应用冻结但只对已有节点
       if (wasFrozen) {
-        // 等待短暂时间让新节点找到合适位置
+        // 对于新节点，让其在模拟中找到合适位置，但保持已有节点固定
         setTimeout(() => {
-          // 如果用户没有手动解除冻结，则重新冻结图表
+          // 如果用户没有手动解除冻结，则冻结包括新节点在内的所有节点
           if (this.isFrozen) {
             this.simulation.stop();
+            // 所有节点都固定在当前位置
             this.simulation.nodes().forEach(node => {
-              // 对现有节点使用之前的位置
-              if (node._prevX !== undefined && node._prevY !== undefined) {
-                node.fx = node._prevX;
-                node.fy = node._prevY;
-                // 清理临时属性
-                delete node._prevX;
-                delete node._prevY;
-              } else {
-                // 新节点使用当前位置固定
-                node.fx = node.x;
-                node.fy = node.y;
-              }
+              node.fx = node.x;
+              node.fy = node.y;
             });
-            console.log("Re-applied frozen state after graph update");
+            console.log("Applied frozen state to all nodes after new node positioning");
           }
-        }, 1000); // 给予1秒时间让力导向布局优化新节点位置
+        }, 500); // 给予0.5秒时间让新节点找到合适位置
       }
     },
     dragstarted(event, d) {
@@ -3236,7 +3247,7 @@ export default {
       
       // 显示成功消息
       if (wasFrozen) {
-        this.showEditFeedback('New node added. Now connect it to another node. Graph will remain frozen after brief layout adjustment.', 'success');
+        this.showEditFeedback('New node added. Now connect it to another node. Original graph layout preserved.', 'success');
       } else {
         this.showEditFeedback('New node added. Now connect it to another node.', 'success');
       }
