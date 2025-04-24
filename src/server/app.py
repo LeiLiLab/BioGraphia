@@ -6,7 +6,7 @@ import sys
 import shutil
 from urllib.parse import urlparse
 import time
-from queue import Queue
+from queue import Queue, Empty
 from threading import Thread, Lock
 from concurrent.futures import ThreadPoolExecutor
 from collections import OrderedDict
@@ -229,9 +229,8 @@ def get_paper_output_path(pmid):
 
 def is_paper_fully_processed(pmid):
     """检查论文是否完全处理完成（包括数据爬取和分析生成）"""
-    data_path = get_paper_data_path(pmid)
     output_path = get_paper_output_path(pmid)
-    return os.path.exists(data_path) and os.path.exists(output_path)
+    return os.path.exists(output_path)
 
 def load_paper_data(pmid):
     """加载论文数据（包括评论）"""
@@ -256,9 +255,14 @@ def initialize_paper_data(paper_url):
     """初始化论文数据，如果不存在则爬取"""
     try:
         pmid = paper_url.rstrip('/').split('/')[-1]
-        data_path = get_paper_data_path(pmid)
         
-        # 检查数据是否存在
+        # 检查是否已完全处理（包括分析结果）
+        if is_paper_fully_processed(pmid):
+            data = load_paper_data(pmid)
+            return data
+        
+        # 检查数据文件是否存在（但分析文件不存在）
+        data_path = get_paper_data_path(pmid)
         if os.path.exists(data_path):
             with open(data_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -266,9 +270,11 @@ def initialize_paper_data(paper_url):
                 if 'comments' not in data:
                     data['comments'] = []
                     save_paper_data(pmid, data)
+                    
+                # 需要继续生成分析结果，但这将在调用方完成
                 return data
         
-        # 直接开始爬取
+        # 直接开始爬取（新论文）
         return scrape_paper(pmid, paper_url)
             
     except Exception as e:
@@ -1410,10 +1416,9 @@ def initialize_paper():
             
         # Get PMID
         pmid = paper_url.rstrip('/').split('/')[-1]
-        data_path = get_paper_data_path(pmid)
         
-        # Check if the paper already exists
-        if os.path.exists(data_path):
+        # 检查论文是否已完全处理
+        if is_paper_fully_processed(pmid):
             # Even if the paper exists, add user access permissions
             try:
                 access_data = load_user_access()
@@ -1430,10 +1435,45 @@ def initialize_paper():
             
             return jsonify({
                 "error": "Paper already exists",
-                "message": "Paper already scraped"
+                "message": "Paper already processed"
             }), 409
+        
+        # 检查data.json是否存在但original_output.json不存在（即部分处理）
+        data_path = get_paper_data_path(pmid)
+        if os.path.exists(data_path):
+            # 加载已存在的论文数据
+            with open(data_path, 'r', encoding='utf-8') as f:
+                article_data = json.load(f)
+                # 确保评论字段存在
+                if 'comments' not in article_data:
+                    article_data['comments'] = []
+                    save_paper_data(pmid, article_data)
+                
+            # 继续生成分析结果
+            analysis_data = generate_initial_analysis(article_data, pmid)
             
-        # Call the initialization function
+            # 添加用户访问权限
+            try:
+                access_data = load_user_access()
+                if pmid not in access_data:
+                    access_data[pmid] = {"access_users": []}
+                if username not in access_data[pmid]["access_users"] and username != "Admin" and username != "Main":
+                    access_data[pmid]["access_users"].append(username)
+                    save_user_access(access_data)
+                    print(f"Added access for user {username} to paper {pmid}")
+                else:
+                    print(f"Skipped adding access for user {username} to paper {pmid} (Admin/Main user or already has access)")
+            except Exception as e:
+                print(f"Error updating user access: {str(e)}")
+            
+            return jsonify({
+                "success": True,
+                "message": "Paper analysis completed successfully",
+                "data": article_data,
+                "analysis": analysis_data
+            })
+            
+        # Call the initialization function for new papers
         try:
             article_data = initialize_paper_data(paper_url)
             if article_data is None:
@@ -3564,6 +3604,121 @@ def upload_knowledge_base():
         print(f"Error uploading knowledge base: {str(e)}")
         return jsonify({"error": f"Failed to process upload: {str(e)}"}), 500
     
+@app.route('/api/reset-knowledge-base', methods=['POST'])
+def reset_knowledge_base():
+    """删除所有指定类型的知识库数据（节点或关系）"""
+    try:
+        # 获取请求中的类型参数
+        data_type = request.json.get('type', 'node')
+        if data_type not in ['node', 'relation']:
+            return jsonify({"error": "Invalid type parameter. Must be 'node' or 'relation'"}), 400
+        
+        # 确定知识库文件路径
+        file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'nodes_relations_database.json')
+        
+        if not os.path.exists(os.path.dirname(file_path)):
+            print(f"Warning: Directory does not exist: {os.path.dirname(file_path)}")
+            # 尝试使用用户提供的绝对路径
+            file_path = '/home/ec2-user/work/temp_fix_folder/data/nodes_relations_database.json'
+            print(f"Using alternative path: {file_path}")
+            
+        # 读取当前知识库数据
+        current_data = {}
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    current_data = json.load(f)
+            except:
+                print(f"Could not read existing knowledge base file")
+                current_data = {"nodes": [], "relations": []}
+        else:
+            current_data = {"nodes": [], "relations": []}
+        
+        # 获取重置前的数据项数量
+        items_count = len(current_data.get('nodes' if data_type == 'node' else 'relations', []))
+        
+        # 根据类型重置数据
+        if data_type == 'node':
+            current_data['nodes'] = []
+            print(f"Reset all nodes in knowledge base")
+        else:  # data_type == 'relation'
+            current_data['relations'] = []
+            print(f"Reset all relations in knowledge base")
+        
+        # 保存更新后的数据
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(current_data, f, indent=2)
+        
+        print(f"Knowledge base data saved to {file_path}")
+        return jsonify({
+            "success": True, 
+            "message": f"Successfully reset all {data_type}s in knowledge base",
+            "removed_count": items_count
+        })
+        
+    except Exception as e:
+        print(f"Error resetting knowledge base: {str(e)}")
+        return jsonify({"error": f"Failed to reset knowledge base: {str(e)}"}), 500
+
+@app.route('/api/export-knowledge-base', methods=['GET'])
+def export_knowledge_base():
+    """导出所有指定类型的知识库数据（节点或关系）"""
+    try:
+        # 获取请求中的类型参数
+        data_type = request.args.get('type', 'node')
+        if data_type not in ['node', 'relation']:
+            return jsonify({"error": "Invalid type parameter. Must be 'node' or 'relation'"}), 400
+        
+        # 确定知识库文件路径
+        file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'nodes_relations_database.json')
+        
+        if not os.path.exists(os.path.dirname(file_path)):
+            print(f"Warning: Directory does not exist: {os.path.dirname(file_path)}")
+            # 尝试使用用户提供的绝对路径
+            file_path = '/home/ec2-user/work/temp_fix_folder/data/nodes_relations_database.json'
+            print(f"Using alternative path: {file_path}")
+            
+            if not os.path.exists(file_path):
+                print(f"Error: Knowledge base file not found")
+                return jsonify({"error": "Knowledge base file not found"}), 404
+        
+        # 读取当前知识库数据
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                current_data = json.load(f)
+        except:
+            print(f"Could not read existing knowledge base file")
+            return jsonify({"error": "Failed to read knowledge base file"}), 500
+        
+        # 根据类型获取数据
+        export_data = {}
+        if data_type == 'node':
+            export_data = {"nodes": current_data.get('nodes', [])}
+            filename = "nodes.json"
+        else:  # data_type == 'relation'
+            export_data = {"relations": current_data.get('relations', [])}
+            filename = "relations.json"
+        
+        # 将数据转换为JSON字符串
+        json_str = json.dumps(export_data, indent=2)
+        
+        # 创建一个内存文件对象，并写入JSON数据
+        mem_file = io.BytesIO()
+        mem_file.write(json_str.encode('utf-8'))
+        mem_file.seek(0)
+        
+        # 返回JSON文件下载
+        return send_file(
+            mem_file,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/json'
+        )
+        
+    except Exception as e:
+        print(f"Error exporting knowledge base: {str(e)}")
+        return jsonify({"error": f"Failed to export knowledge base: {str(e)}"}), 500
+
 # Start the application
 if __name__ == '__main__':
     from dotenv import load_dotenv
