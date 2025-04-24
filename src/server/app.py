@@ -229,9 +229,8 @@ def get_paper_output_path(pmid):
 
 def is_paper_fully_processed(pmid):
     """检查论文是否完全处理完成（包括数据爬取和分析生成）"""
-    data_path = get_paper_data_path(pmid)
     output_path = get_paper_output_path(pmid)
-    return os.path.exists(data_path) and os.path.exists(output_path)
+    return os.path.exists(output_path)
 
 def load_paper_data(pmid):
     """加载论文数据（包括评论）"""
@@ -256,9 +255,14 @@ def initialize_paper_data(paper_url):
     """初始化论文数据，如果不存在则爬取"""
     try:
         pmid = paper_url.rstrip('/').split('/')[-1]
-        data_path = get_paper_data_path(pmid)
         
-        # 检查数据是否存在
+        # 检查是否已完全处理（包括分析结果）
+        if is_paper_fully_processed(pmid):
+            data = load_paper_data(pmid)
+            return data
+        
+        # 检查数据文件是否存在（但分析文件不存在）
+        data_path = get_paper_data_path(pmid)
         if os.path.exists(data_path):
             with open(data_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -266,9 +270,11 @@ def initialize_paper_data(paper_url):
                 if 'comments' not in data:
                     data['comments'] = []
                     save_paper_data(pmid, data)
+                    
+                # 需要继续生成分析结果，但这将在调用方完成
                 return data
         
-        # 直接开始爬取
+        # 直接开始爬取（新论文）
         return scrape_paper(pmid, paper_url)
             
     except Exception as e:
@@ -1410,10 +1416,9 @@ def initialize_paper():
             
         # Get PMID
         pmid = paper_url.rstrip('/').split('/')[-1]
-        data_path = get_paper_data_path(pmid)
         
-        # Check if the paper already exists
-        if os.path.exists(data_path):
+        # 检查论文是否已完全处理
+        if is_paper_fully_processed(pmid):
             # Even if the paper exists, add user access permissions
             try:
                 access_data = load_user_access()
@@ -1430,10 +1435,45 @@ def initialize_paper():
             
             return jsonify({
                 "error": "Paper already exists",
-                "message": "Paper already scraped"
+                "message": "Paper already processed"
             }), 409
+        
+        # 检查data.json是否存在但original_output.json不存在（即部分处理）
+        data_path = get_paper_data_path(pmid)
+        if os.path.exists(data_path):
+            # 加载已存在的论文数据
+            with open(data_path, 'r', encoding='utf-8') as f:
+                article_data = json.load(f)
+                # 确保评论字段存在
+                if 'comments' not in article_data:
+                    article_data['comments'] = []
+                    save_paper_data(pmid, article_data)
+                
+            # 继续生成分析结果
+            analysis_data = generate_initial_analysis(article_data, pmid)
             
-        # Call the initialization function
+            # 添加用户访问权限
+            try:
+                access_data = load_user_access()
+                if pmid not in access_data:
+                    access_data[pmid] = {"access_users": []}
+                if username not in access_data[pmid]["access_users"] and username != "Admin" and username != "Main":
+                    access_data[pmid]["access_users"].append(username)
+                    save_user_access(access_data)
+                    print(f"Added access for user {username} to paper {pmid}")
+                else:
+                    print(f"Skipped adding access for user {username} to paper {pmid} (Admin/Main user or already has access)")
+            except Exception as e:
+                print(f"Error updating user access: {str(e)}")
+            
+            return jsonify({
+                "success": True,
+                "message": "Paper analysis completed successfully",
+                "data": article_data,
+                "analysis": analysis_data
+            })
+            
+        # Call the initialization function for new papers
         try:
             article_data = initialize_paper_data(paper_url)
             if article_data is None:
