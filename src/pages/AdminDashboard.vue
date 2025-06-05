@@ -79,7 +79,11 @@
               <q-card-section>
                 <div class="text-h6 q-mb-md" style="font-size: 24px">Progress Distribution</div>
                 <div class="chart-container">
-                  <canvas id="editPapersRatio" ref="editPapersRatio"></canvas>
+                  <div v-if="isDataEmpty.editPapers" class="no-data-message">
+                    <q-icon name="info" size="40px" color="grey-6" />
+                    <div class="q-mt-sm">No data available</div>
+                  </div>
+                  <canvas v-else id="editPapersRatio" ref="editPapersRatio"></canvas>
                 </div>
               </q-card-section>
             </q-card>
@@ -91,7 +95,11 @@
               <q-card-section>
                 <div class="text-h6 q-mb-md" style="font-size: 24px">Await Curation</div>
                 <div class="chart-container">
-                  <canvas id="curationRatio" ref="curationRatio"></canvas>
+                  <div v-if="isDataEmpty.curationRatio" class="no-data-message">
+                    <q-icon name="info" size="40px" color="grey-6" />
+                    <div class="q-mt-sm">No data available</div>
+                  </div>
+                  <canvas v-else id="curationRatio" ref="curationRatio"></canvas>
                 </div>
               </q-card-section>
             </q-card>
@@ -104,9 +112,13 @@
         <div class="section-title q-my-md">User Completion Overview</div>
         <q-card class="chart-card">
           <q-card-section>
-            <div v-if="userCompletionData.length === 0" class="text-center q-pa-lg">
+            <div v-if="isLoadingUserCompletionData" class="text-center q-pa-lg">
               <q-spinner-dots color="primary" size="40px" />
               <div class="text-subtitle1 q-mt-sm">Loading user completion data...</div>
+            </div>
+            <div v-else-if="userCompletionData.length === 0" class="text-center q-pa-lg">
+              <q-icon name="info" size="40px" color="grey-6" />
+              <div class="text-subtitle1 q-mt-sm">No user completion data available</div>
             </div>
             <div v-else class="user-completion-container">
               <div v-for="user in userCompletionData" :key="user.username" class="user-progress-row q-mb-md">
@@ -527,15 +539,6 @@
         />
         
         <q-input 
-          v-model="newPromptDescription" 
-          label="Prompt Description" 
-          filled 
-          class="q-mb-md"
-          hint="Brief description of what this prompt is used for"
-          :rules="[val => !!val || 'Description is required']"
-        />
-        
-        <q-input
           v-model="newPromptContent"
           type="textarea"
           filled
@@ -594,9 +597,18 @@
               <template v-slot:loading>
                 <q-spinner-dots />
               </template>
-              <q-tooltip class="tooltip-text">
-                Please upload a .txt file with one PubMed URL per line
-              </q-tooltip>
+            </q-btn>
+            <q-btn
+              color="amber"
+              :loading="autoSubmitting"
+              @click="handleAutoContinue"
+              class="auto-continue-btn"
+            >
+              <q-icon name="autorenew" class="q-mr-xs" size="20px" />
+              Auto Continue
+              <template v-slot:loading>
+                <q-spinner-dots />
+              </template>
             </q-btn>
           </div>
           <!-- Hidden file input -->
@@ -798,7 +810,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, ref, computed, watch, onUnmounted } from 'vue'
+import { defineComponent, onMounted, ref, computed, watch, onUnmounted, nextTick } from 'vue'
 import axios from 'axios'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
@@ -884,6 +896,15 @@ export default defineComponent({
   setup() {
     const $q = useQuasar()
     const router = useRouter()
+    
+    // 添加图表数据空状态检查
+    const isDataEmpty = ref({
+      editPapers: true,
+      curationRatio: true
+    })
+    
+    // 添加用户数据加载状态
+    const isLoadingUserCompletionData = ref(true)
     
     const editPapersRatio = ref(null);
     const curationRatio = ref(null);
@@ -1367,7 +1388,6 @@ export default defineComponent({
     // 检查是否可以添加新的提示
     const canAddPrompt = computed(() => {
       return newPromptName.value.trim() !== '' && 
-             newPromptDescription.value.trim() !== '' && 
              newPromptContent.value.trim() !== '';
     });
     
@@ -1390,7 +1410,7 @@ export default defineComponent({
         // 添加新模板到前端内存中
         promptTemplates.value.push({
           name: newPromptName.value,
-          description: newPromptDescription.value,
+          description: newPromptName.value, // 使用名称作为描述
           content: newPromptContent.value,
           isSystemPrompt: false
         });
@@ -1404,7 +1424,7 @@ export default defineComponent({
         // 记录到控制台
         console.log('添加新的提示模板（仅前端临时存储）:', {
           name: newPromptName.value,
-          description: newPromptDescription.value,
+          description: newPromptName.value,
           contentLength: newPromptContent.value.length
         });
         
@@ -1501,10 +1521,12 @@ export default defineComponent({
         // 模拟保存延迟
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // 不实际发送到后端，只在前端内存中保存
-        console.log('模拟保存到后端，当前内容：', currentContent);
-        console.log('当前系统Prompt：', systemPromptName);
-        console.log('注意：这只是前端缓存，刷新页面后将恢复到原始状态');
+        // 更新后端prompt.json中的PROMPT_TEMPLATE，但保留JSON_PROMPT_TEMPLATE不变
+        if (systemPromptTemplate) {
+          await axios.put(getApiUrl('/api/prompt-config'), {
+            PROMPT_TEMPLATE: systemPromptTemplate.content
+          });
+        }
         
         // 更新原始数据（仅UI展示用）
         originalPromptTemplate.value = currentContent;
@@ -1591,6 +1613,7 @@ export default defineComponent({
     
     // 获取用户完成率数据
     const loadUserCompletionData = async () => {
+      isLoadingUserCompletionData.value = true;
       try {
         const response = await axios.get(getApiUrl('/api/user-completion-overview'));
         userCompletionData.value = response.data.users || [];
@@ -1605,6 +1628,9 @@ export default defineComponent({
           html: true,
           timeout: 3000
         });
+      } finally {
+        // 无论成功失败都更新加载状态
+        isLoadingUserCompletionData.value = false;
       }
     };
     
@@ -1624,25 +1650,61 @@ export default defineComponent({
     // Create pie charts
     onMounted(() => {
       // 加载仪表盘统计数据
-      loadDashboardStats();
+      loadDashboardStats(); // This function already calls the chart drawing functions after data is loaded.
       
       // 加载用户完成率数据
       loadUserCompletionData();
       
       // Make sure Chart.js is loaded
       if (typeof window.Chart !== 'undefined') {
-        // Create pie charts when component is mounted
-        drawEditPapersRatioChart();
-        drawCurationRatioChart();
+        // Chart.js is already loaded, data loading will trigger chart drawing.
+        // No need to call draw functions here directly as loadDashboardStats handles it.
       } else {
         // Load Chart.js if not available
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
         script.onload = () => {
-          drawEditPapersRatioChart();
-          drawCurationRatioChart();
+          // Chart.js is now loaded. If data is already available, draw charts.
+          // loadDashboardStats might have already been called and data might be ready.
+          // The chart drawing functions themselves check for data and Chart.js availability.
+          console.log("Chart.js loaded dynamically. Attempting to draw charts if data is ready.");
+          if (!isDataEmpty.value.editPapers) {
+            drawEditPapersRatioChart();
+          }
+          if (!isDataEmpty.value.curationRatio) {
+            drawCurationRatioChart();
+          }
         };
         document.head.appendChild(script);
+      }
+      
+      // 检查是否需要自动打开Paper Crawling对话框
+      // 这是从ProjectPromptPage的Complete按钮跳转过来的情况
+      if (router.currentRoute.value.query.openPaperCrawling === 'true') {
+        // 自动滚动到底部
+        setTimeout(() => {
+          window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: 'smooth'
+          });
+          
+          // 延迟打开对话框，等待滚动完成
+          setTimeout(() => {
+            openPaperCrawlingDialog();
+            
+            // 显示提示消息
+            $q.notify({
+              type: 'info',
+              message: 'Prompt analysis completed. You can now batch crawl papers.',
+              position: 'top',
+              timeout: 4000,
+              html: true
+            });
+            
+            // 清除URL中的参数，防止刷新页面时再次触发
+            router.replace({ query: {} });
+          }, 800);
+        }, 300);
       }
     });
     
@@ -1657,74 +1719,95 @@ export default defineComponent({
     // Draw Edit Papers Ratio Chart - 使用实际数据
     const drawEditPapersRatioChart = () => {
       console.log("绘制Edit Papers Ratio图表");
-      const ctx = document.getElementById('editPapersRatio') as HTMLCanvasElement;
-      if (!ctx || !window.Chart) {
-        console.error("无法获取图表canvas元素或Chart.js未加载");
+      // const ctx = document.getElementById('editPapersRatio') as HTMLCanvasElement; // Removed this line
+      // if (!ctx || !window.Chart) { // We will check ctx later, after DOM update
+      if (!window.Chart) { // Only check for Chart.js here
+        console.error("Chart.js未加载");
         return;
       }
       
       try {
         // 使用实际数据
         const editPapers = dashboardStats.value.total_edit_papers || 0;
-        const totalPapers = dashboardStats.value.total_papers || 1; // 至少为1，防止除以0
-        const otherPapers = Math.max(0, totalPapers - editPapers); // 防止负数
+        const totalPapers = dashboardStats.value.total_papers || 0; 
+        const otherPapers = Math.max(0, totalPapers - editPapers); 
         
         console.log(`图表数据: editPapers=${editPapers}, otherPapers=${otherPapers}`);
         
-        // 如果两个值都为0，设置一个默认值以显示空图表
-        const chartData = (editPapers === 0 && otherPapers === 0) ? 
-          [1, 1] : [editPapers, otherPapers];
+        if (editPapers === 0 && otherPapers === 0) {
+          isDataEmpty.value.editPapers = true;
+          return;
+        }
         
-        const chartInstance = new window.Chart(ctx, {
-          type: 'pie',
-          data: {
-            labels: ['Edit Papers', 'Unedited Papers'],
-            datasets: [{
-              data: chartData,
-              backgroundColor: [
-                'rgba(80, 165, 220, 0.7)',  // light blue for edit papers
-                'rgba(255, 183, 77, 0.7)'   // light orange for unedited papers
-              ],
-              borderColor: [
-                'rgba(80, 165, 220, 1)',
-                'rgba(255, 183, 77, 1)'
-              ],
-              borderWidth: 1
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: true,
-                position: 'top',
-                align: 'end',
-                labels: {
-                  boxWidth: 15,
-                  font: {
-                    size: 14
-                  },
-                  color: '#333'
-                }
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context: ChartContext) {
-                    const label = context.label || '';
-                    const value = context.raw;
-                    const total = context.dataset.data.reduce((acc: number, data: number) => acc + data, 0);
-                    const percentage = total === 0 ? 0 : Math.round((value / total) * 100);
-                    return `${label}: ${value} (${percentage}%)`;
+        isDataEmpty.value.editPapers = false;
+        
+        nextTick(() => {
+          const currentCtx = document.getElementById('editPapersRatio') as HTMLCanvasElement;
+          if (!currentCtx) {
+            console.error("无法获取Edit Papers Ratio图表canvas元素");
+            return;
+          }
+
+          // 先销毁已有的图表实例
+          const existingChart = (currentCtx as ExtendedHTMLCanvasElement).__chartInstance;
+          if (existingChart) {
+            existingChart.destroy();
+            (currentCtx as ExtendedHTMLCanvasElement).__chartInstance = undefined;
+          }
+
+          const chartData = [editPapers, otherPapers];
+          
+          const chartInstance = new window.Chart!(currentCtx, {
+            type: 'pie',
+            data: {
+              labels: ['Edit Papers', 'Unedited Papers'],
+              datasets: [{
+                data: chartData,
+                backgroundColor: [
+                  'rgba(80, 165, 220, 0.7)',  // light blue for edit papers
+                  'rgba(255, 183, 77, 0.7)'   // light orange for unedited papers
+                ],
+                borderColor: [
+                  'rgba(80, 165, 220, 1)',
+                  'rgba(255, 183, 77, 1)'
+                ],
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: true,
+                  position: 'top',
+                  align: 'end',
+                  labels: {
+                    boxWidth: 15,
+                    font: {
+                      size: 14
+                    },
+                    color: '#333'
+                  }
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context: ChartContext) {
+                      const label = context.label || '';
+                      const value = context.raw;
+                      const total = context.dataset.data.reduce((acc: number, data: number) => acc + data, 0);
+                      const percentage = total === 0 ? 0 : Math.round((value / total) * 100);
+                      return `${label}: ${value} (${percentage}%)`;
+                    }
                   }
                 }
               }
             }
-          }
+          });
+          
+          // 保存图表实例以便后续销毁
+          (currentCtx as ExtendedHTMLCanvasElement).__chartInstance = chartInstance;
         });
-        
-        // 保存图表实例以便后续销毁
-        (ctx as ExtendedHTMLCanvasElement).__chartInstance = chartInstance;
       } catch (e) {
         console.error("绘制Edit Papers Ratio图表时出错:", e);
       }
@@ -1733,79 +1816,98 @@ export default defineComponent({
     // Draw Curation Ratio Chart - 使用实际数据
     const drawCurationRatioChart = () => {
       console.log("绘制Curation Ratio图表");
-      const ctx = document.getElementById('curationRatio') as HTMLCanvasElement;
-      if (!ctx || !window.Chart) {
-        console.error("无法获取图表canvas元素或Chart.js未加载");
+      // const ctx = document.getElementById('curationRatio') as HTMLCanvasElement; // Removed this line
+      // if (!ctx || !window.Chart) { // We will check ctx later, after DOM update
+      if (!window.Chart) { // Only check for Chart.js here
+        console.error("Chart.js未加载");
         return;
       }
       
       try {
-        // 使用实际数据
         const needCuration = dashboardStats.value.papers_need_curation || 0;
         const alreadyCurated = dashboardStats.value.curated_papers || 0;
-        // 计算Pending Curation: 已编辑但未进入curation流程的论文
         const pendingCuration = Math.max(0, 
           dashboardStats.value.total_edit_papers - needCuration - alreadyCurated
         );
         
         console.log(`图表数据: needCuration=${needCuration}, alreadyCurated=${alreadyCurated}, pendingCuration=${pendingCuration}`);
         
-        // 如果所有值都为0，设置一个默认值以显示空图表
-        const chartData = (needCuration === 0 && alreadyCurated === 0 && pendingCuration === 0) ? 
-          [1, 1, 1] : [needCuration, alreadyCurated, pendingCuration];
+        if (needCuration === 0 && alreadyCurated === 0 && pendingCuration === 0) {
+          isDataEmpty.value.curationRatio = true;
+          return;
+        }
         
-        const chartInstance = new window.Chart(ctx, {
-          type: 'pie',
-          data: {
-            labels: ['Need Curation', 'Already Curated', 'Pending Curation'],
-            datasets: [{
-              data: chartData,
-              backgroundColor: [
-                'rgba(186, 104, 200, 0.7)',  // light purple for need curation
-                'rgba(105, 195, 120, 0.7)',   // light green for already curated
-                'rgba(244, 201, 8, 0.7)'    // light yellow for pending curation
-              ],
-              borderColor: [
-                'rgba(186, 104, 200, 1)',
-                'rgba(105, 195, 120, 1)',
-                'rgba(255, 235, 150, 1)'
-              ],
-              borderWidth: 1
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: true,
-                position: 'top',
-                align: 'end',
-                labels: {
-                  boxWidth: 15,
-                  font: {
-                    size: 14
-                  },
-                  color: '#333'
-                }
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context: ChartContext) {
-                    const label = context.label || '';
-                    const value = context.raw;
-                    const total = context.dataset.data.reduce((acc: number, data: number) => acc + data, 0);
-                    const percentage = total === 0 ? 0 : Math.round((value / total) * 100);
-                    return `${label}: ${value} (${percentage}%)`;
+        isDataEmpty.value.curationRatio = false;
+
+        nextTick(() => {
+          const currentCtx = document.getElementById('curationRatio') as HTMLCanvasElement;
+          if (!currentCtx) {
+            console.error("无法获取Curation Ratio图表canvas元素");
+            return;
+          }
+
+          // 先销毁已有的图表实例
+          const existingChart = (currentCtx as ExtendedHTMLCanvasElement).__chartInstance;
+          if (existingChart) {
+            existingChart.destroy();
+            (currentCtx as ExtendedHTMLCanvasElement).__chartInstance = undefined;
+          }
+
+          const chartData = [needCuration, alreadyCurated, pendingCuration];
+          
+          const chartInstance = new window.Chart!(currentCtx, {
+            type: 'pie',
+            data: {
+              labels: ['Need Curation', 'Already Curated', 'Pending Curation'],
+              datasets: [{
+                data: chartData,
+                backgroundColor: [
+                  'rgba(186, 104, 200, 0.7)',  // light purple for need curation
+                  'rgba(105, 195, 120, 0.7)',   // light green for already curated
+                  'rgba(244, 201, 8, 0.7)'    // light yellow for pending curation
+                ],
+                borderColor: [
+                  'rgba(186, 104, 200, 1)',
+                  'rgba(105, 195, 120, 1)',
+                  'rgba(255, 235, 150, 1)'
+                ],
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: true,
+                  position: 'top',
+                  align: 'end',
+                  labels: {
+                    boxWidth: 15,
+                    font: {
+                      size: 14
+                    },
+                    color: '#333'
+                  }
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context: ChartContext) {
+                      const label = context.label || '';
+                      const value = context.raw;
+                      const total = context.dataset.data.reduce((acc: number, data: number) => acc + data, 0);
+                      const percentage = total === 0 ? 0 : Math.round((value / total) * 100);
+                      return `${label}: ${value} (${percentage}%)`;
+                    }
                   }
                 }
               }
             }
-          }
+          });
+          
+          // 保存图表实例以便后续销毁
+          (currentCtx as ExtendedHTMLCanvasElement).__chartInstance = chartInstance;
         });
-        
-        // 保存图表实例以便后续销毁
-        (ctx as ExtendedHTMLCanvasElement).__chartInstance = chartInstance;
       } catch (e) {
         console.error("绘制Curation Ratio图表时出错:", e);
       }
@@ -1867,6 +1969,7 @@ export default defineComponent({
     const newPaperUrl = ref('');
     const submitting = ref(false);
     const batchSubmitting = ref(false);
+    const autoSubmitting = ref(false);
     const showProgress = ref(false);
     const currentPosition = ref(0);
     const totalPapers = ref(0);
@@ -1947,12 +2050,28 @@ export default defineComponent({
             // 显示成功消息
             $q.notify({
               type: 'positive',
-              message: 'Paper scraped successfully',
+              message: 'Paper initialization started',
               position: 'top',
               html: true,
               classes: 'notification-message',
               timeout: 3000,
             });
+            
+            // 开始检查进度
+            showProgress.value = true;
+            totalPapers.value = 1;
+            currentPosition.value = 0;
+            
+            // 清除可能存在的旧计时器
+            if (statusCheckInterval !== null) {
+              clearInterval(statusCheckInterval);
+              statusCheckInterval = null;
+            }
+            
+            // 启动新的状态检查
+            if (statusCheckInterval === null) {
+              statusCheckInterval = setInterval(checkScrapingStatus, 2500) as unknown as number | NodeJS.Timeout;
+            }
             
             // 更新仪表盘统计数据
             loadDashboardStats();
@@ -2151,6 +2270,116 @@ export default defineComponent({
         }
       } catch (error: unknown) {
         console.error('Error checking scraping status:', error);
+      }
+    };
+
+    // 添加自动继续爬取功能
+    const handleAutoContinue = async () => {
+      autoSubmitting.value = true;
+      
+      try {
+        // 获取当前用户名
+        const currentUser = localStorage.getItem('currentUser');
+        let username = currentUser || 'Guest';
+        try {
+          const userObj = JSON.parse(currentUser || '{}');
+          if (userObj && userObj.username) {
+            username = userObj.username;
+          }
+        } catch (error) {
+          console.log('Failed to parse user object, using original value:', error);
+        }
+        
+        console.log('Auto continue crawling using username:', username);
+
+        // 创建一个通知引用
+        const notifyRef = $q.notify({
+          type: 'ongoing',
+          message: 'Checking for incomplete papers...',
+          position: 'top',
+          timeout: 0,
+          html: true,
+          classes: 'notification-message',
+          spinner: true,
+        });
+
+        try {
+          // 调用自动继续爬取API，添加testMode参数为true，只爬取一篇论文
+          const response = await axios.post(`${BACKEND_URL}/api/auto-continue-crawling`, {
+            username: username,
+            testMode: true // 添加测试模式参数，只处理一篇论文
+          });
+
+          // 清除通知
+          notifyRef();
+
+          if (response.data.success) {
+            if (response.data.total === 0) {
+              // 没有需要继续爬取的论文
+              $q.notify({
+                type: 'info',
+                message: 'No incomplete papers found',
+                position: 'top',
+                html: true,
+                classes: 'notification-message',
+                timeout: 3000,
+              });
+            } else {
+              // 显示成功消息
+              $q.notify({
+                type: 'positive',
+                message: response.data.test_mode 
+                  ? `Found incomplete papers. TEST MODE: Only processing the first paper.`
+                  : `Found ${response.data.total} incomplete papers. Continuing crawling process.`,
+                position: 'top',
+                html: true,
+                classes: 'notification-message',
+                timeout: 3000,
+              });
+              
+              // 开始检查进度
+              showProgress.value = true;
+              totalPapers.value = response.data.total;
+              currentPosition.value = 0;
+
+              // 清除可能存在的旧计时器
+              if (statusCheckInterval !== null) {
+                clearInterval(statusCheckInterval);
+                statusCheckInterval = null;
+              }
+
+              // 启动新的状态检查
+              if (statusCheckInterval === null) {
+                statusCheckInterval = setInterval(checkScrapingStatus, 2500) as unknown as number | NodeJS.Timeout;
+              }
+              
+              // 更新仪表盘统计数据
+              loadDashboardStats();
+            }
+          }
+        } catch (error) {
+          // 确保处理中的通知被清除
+          notifyRef();
+          throw error;
+        }
+      } catch (error: unknown) {
+        console.error('Error in auto continue crawling:', error);
+        
+        const err = error as { response?: { status: number, data: { message: string, error: string } } };
+        const errorMessage = err.response
+          ? err.response.data.message || err.response.data.error || 'Error during auto continue crawling. Please try again.'
+          : 'Error during auto continue crawling. Please try again.';
+
+        $q.notify({
+          type: 'negative',
+          message: errorMessage,
+          position: 'top',
+          html: true,
+          classes: 'notification-message',
+          timeout: 3000,
+        });
+      } finally {
+        autoSubmitting.value = false;
       }
     };
 
@@ -2363,6 +2592,18 @@ export default defineComponent({
       }
     };
 
+    // 添加Demo版本提示方法
+    const handleDemoSubmit = () => {
+      $q.notify({
+        type: 'warning',
+        message: 'Demo version does not support this feature.',
+        position: 'top',
+        html: true,
+        classes: 'notification-message',
+        timeout: 3000,
+      });
+    };
+
     return {
       navigateToTypeAndName,
       navigateToPrompt,
@@ -2437,6 +2678,7 @@ export default defineComponent({
       newPaperUrl,
       submitting,
       batchSubmitting,
+      autoSubmitting,
       showProgress,
       currentPosition,
       totalPapers,
@@ -2446,6 +2688,7 @@ export default defineComponent({
       handleSubmit,
       triggerFileInput,
       handleFileSelected,
+      handleAutoContinue,
       checkScrapingStatus,
       showKbOptions,
       showUploadDialog,
@@ -2473,7 +2716,10 @@ export default defineComponent({
       onFileSelected,
       confirmReset,
       resetKnowledgeBase,
-      exportData
+      exportData,
+      handleDemoSubmit,
+      isDataEmpty,
+      isLoadingUserCompletionData
     }
   }
 })
@@ -2575,6 +2821,17 @@ export default defineComponent({
   height: 300px;
   position: relative;
   margin-top: 20px;
+  
+  // 添加无数据提示样式
+  .no-data-message {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #666;
+    font-size: 16px;
+  }
 }
 
 .chart-placeholder {
@@ -2879,7 +3136,8 @@ export default defineComponent({
 }
 
 /* Update batch scrape button styles */
-.batch-scrape-btn {
+.batch-scrape-btn,
+.auto-continue-btn {
   height: 40px;
   font-size: 14px;
   padding: 0 12px;
@@ -3035,5 +3293,21 @@ export default defineComponent({
 
 .data-item {
   border-bottom: 1px dotted rgba(0, 0, 0, 0.1);
+}
+
+.disabled-feature {
+  opacity: 0.65;
+  cursor: not-allowed !important;
+  pointer-events: auto; /* 允许鼠标事件，但我们改变了鼠标样式 */
+  filter: grayscale(50%);
+  
+  &:hover {
+    transform: none !important; /* 禁用悬停时的上移效果 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important; /* 使用静态阴影 */
+  }
+  
+  .q-card-actions .q-btn {
+    opacity: 0.7;
+  }
 }
 </style>

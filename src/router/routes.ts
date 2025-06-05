@@ -7,7 +7,11 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        component: () => import('pages/WelcomePage.vue'),
+        component: () => import('pages/LoginPage.vue'),
+      },
+      {
+        path: 'project-select',
+        component: () => import('pages/ProjectSelectPage.vue'),
       },
       {
         path: 'management',
@@ -47,6 +51,11 @@ const routes: RouteRecordRaw[] = [
         name: 'paper-permissions',
         component: () => import('pages/PaperPermissionManagement.vue'),
         meta: { requiresAdmin: true }
+      },
+      {
+        path: 'project-prompt',
+        name: 'project-prompt',
+        component: () => import('pages/ProjectPromptPage.vue'),
       },
     ],
   },

@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory, send_file
+from flask import Flask, jsonify, request, send_from_directory, send_file, session
 from flask_cors import CORS
 import json
 import os
@@ -35,20 +35,13 @@ sys.path.append(ROOT_DIR)
 from utils.scraper import extract_article_to_json
 
 app = Flask(__name__)
-CORS(app)  # 启用跨域支持
+# 设置密钥用于会话加密
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev_secret_key')
+CORS(app, supports_credentials=True)  # 启用跨域支持，并支持凭据传递
 
 # 创建任务队列
 scraping_queue = Queue()
 AVERAGE_SCRAPE_TIME = 15  # 预估每篇论文爬取时间（秒）
-
-# 用户数据文件路径
-USERS_FILE = os.path.join(ROOT_DIR, 'data', 'users.json')
-
-# 添加新的路径常量
-MAIN_DIR = os.path.join(ROOT_DIR, 'data', 'Main_dir')
-TEMP_DIR = os.path.join(ROOT_DIR, 'data', 'Temp_dir')  # 改为 Temp_dir
-# 添加统计数据文件路径
-STATISTICS_FILE = os.path.join(ROOT_DIR, 'data', 'statistic.json')
 
 # 添加全局变量来跟踪爬取进度
 completed_papers = []
@@ -57,11 +50,82 @@ total_papers_to_scrape = 0
 # 添加锁来保护共享数据访问
 progress_lock = Lock()  # 用于保护completed_papers和in_progress_papers
 
-# 添加新的常量
-TYPE_NAME_CONFIG_FILE = os.path.join(ROOT_DIR, 'data', 'type_name_database.json')
+# 项目相关常量
 
-# 设置prompt配置文件的路径常量
-PROMPT_CONFIG_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'prompt.json')
+# 定义基于会话的项目路径处理函数
+def get_current_project_name():
+    """获取当前项目名称，从会话中读取，如果不存在则使用默认值"""
+    return session.get('current_project_name', 'default')
+
+def get_project_dir():
+    """获取当前项目的根目录"""
+    project_name = get_current_project_name()
+    return os.path.join(ROOT_DIR, 'projects', project_name)
+
+def get_users_file():
+    """获取用户文件路径 (统一管理在根目录的projects下)"""
+    return os.path.join(ROOT_DIR, 'projects', 'users.json')
+
+def get_main_dir():
+    """获取当前项目的Main_dir目录路径"""
+    return os.path.join(get_project_dir(), 'Main_dir')
+
+def get_temp_dir():
+    """获取当前项目的Temp_dir目录路径"""
+    return os.path.join(get_project_dir(), 'Temp_dir')
+
+def get_statistics_file():
+    """获取当前项目的统计数据文件路径"""
+    return os.path.join(get_project_dir(), 'statistic.json')
+
+def get_type_name_config_file():
+    """获取当前项目的类型名称配置文件路径"""
+    return os.path.join(get_project_dir(), 'type_name_database.json')
+
+def get_prompt_config_file():
+    """获取当前项目的提示词配置文件路径"""
+    return os.path.join(get_project_dir(), 'prompt.json')
+
+def load_prompt_config():
+    """加载提示词配置，如果文件不存在则返回默认配置"""
+    prompt_config_file = get_prompt_config_file()
+    if not os.path.exists(prompt_config_file):
+        # 如果文件不存在，返回默认配置
+        default_config = {
+            "PROMPT_TEMPLATE": "Default prompt template",
+            "JSON_PROMPT_TEMPLATE": "Default JSON prompt template"
+        }
+        # 确保目录存在
+        os.makedirs(os.path.dirname(prompt_config_file), exist_ok=True)
+        # 保存默认配置到文件
+        with open(prompt_config_file, 'w', encoding='utf-8') as f:
+            json.dump(default_config, f, indent=4, ensure_ascii=False)
+        return default_config
+    
+    # 从文件加载配置
+    with open(prompt_config_file, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def get_user_access_file_path():
+    """获取当前项目的用户访问控制文件路径"""
+    return os.path.join(get_project_dir(), 'user_access.json')
+
+def get_knowledge_base_file():
+    """获取当前项目的知识库文件路径"""
+    return os.path.join(get_project_dir(), 'nodes_relations_database.json')
+
+# 确保默认项目目录存在
+def ensure_default_project_exists():
+    """确保默认项目目录结构存在"""
+    default_project_dir = os.path.join(ROOT_DIR, 'projects', 'default')
+    
+    # 创建主要目录
+    for dir_path in [
+        default_project_dir, 
+        os.path.join(default_project_dir, 'Main_dir'),
+        os.path.join(default_project_dir, 'Temp_dir')
+    ]:
+        ensure_directory_exists(dir_path)
 
 def ensure_directory_exists(path):
     """确保目录存在，如果不存在则创建"""
@@ -78,12 +142,13 @@ def ensure_directory_exists(path):
 def load_statistics():
     """加载统计数据文件，如果不存在则创建空的统计数据"""
     try:
-        if os.path.exists(STATISTICS_FILE):
-            with open(STATISTICS_FILE, 'r', encoding='utf-8') as f:
+        statistics_file = get_statistics_file()
+        if os.path.exists(statistics_file):
+            with open(statistics_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         else:
             # 确保目录存在
-            ensure_directory_exists(os.path.dirname(STATISTICS_FILE))
+            ensure_directory_exists(os.path.dirname(statistics_file))
             # 创建空的统计数据
             return {}
     except Exception as e:
@@ -93,10 +158,11 @@ def load_statistics():
 def save_statistics(statistics):
     """保存统计数据到文件"""
     try:
+        statistics_file = get_statistics_file()
         # 确保目录存在
-        ensure_directory_exists(os.path.dirname(STATISTICS_FILE))
+        ensure_directory_exists(os.path.dirname(statistics_file))
         # 保存统计数据
-        with open(STATISTICS_FILE, 'w', encoding='utf-8') as f:
+        with open(statistics_file, 'w', encoding='utf-8') as f:
             json.dump(statistics, f, indent=2, ensure_ascii=False)
         return True
     except Exception as e:
@@ -146,21 +212,18 @@ def record_edit_duration(pmid, username, edit_duration):
         print(f"Error recording edit duration: {str(e)}")
         return False
 
-# 确保基本目录存在
-ensure_directory_exists(MAIN_DIR)
-ensure_directory_exists(TEMP_DIR)
 
 def get_main_data_path(pmid):
     """获取论文主数据路径"""
-    return os.path.join(MAIN_DIR, pmid, 'original_data')
+    return os.path.join(get_main_dir(), pmid, 'original_data')
 
 def get_temp_data_path(username, pmid):
     """获取用户临时数据路径"""
-    return os.path.join(TEMP_DIR, username, pmid)
+    return os.path.join(get_temp_dir(), username, pmid)
 
 def get_user_data_path_in_main(username, pmid):
     """获取用户在主目录中的数据路径"""
-    return os.path.join(MAIN_DIR, pmid, 'User_dir', username)
+    return os.path.join(get_main_dir(), pmid, 'User_dir', username)
 
 def get_queue_position(target_pmid: str) -> tuple[int, int]:
     """
@@ -175,13 +238,18 @@ def get_queue_position(target_pmid: str) -> tuple[int, int]:
     """
     return (0, scraping_queue.qsize())
 
-def scrape_paper(pmid: str, paper_url: str):
+def scrape_paper(pmid: str, paper_url: str, prompt_version: str = None):
     """爬取论文并保存数据"""
     try:
-        main_data_path = get_main_data_path(pmid)
+        # 根据 prompt_version 决定主数据路径
+        if prompt_version:
+            main_data_path = os.path.dirname(get_paper_data_path(pmid, prompt_version))
+        else:
+            main_data_path = get_main_data_path(pmid)
+        
         data_json_path = os.path.join(main_data_path, 'data.json')
         
-        print(f"Scraping paper {pmid}...")
+        print(f"Scraping paper {pmid} for prompt version '{prompt_version if prompt_version else 'None (Main)'}'...")
         article_json = extract_article_to_json(paper_url)
         article_data = json.loads(article_json)
         
@@ -192,15 +260,15 @@ def scrape_paper(pmid: str, paper_url: str):
         with open(data_json_path, 'w', encoding='utf-8') as f:
             json.dump(article_data, f, indent=2, ensure_ascii=False)
             
-        print(f"Paper {pmid} basic data scraped successfully")
+        print(f"Paper {pmid} basic data scraped successfully to {data_json_path}")
         
-        # 生成初始分析
-        generate_initial_analysis(article_data, pmid)
+        # 生成初始分析，传递 prompt_version
+        generate_initial_analysis(article_data, pmid, prompt_version=prompt_version)
         
         # 等待分析完全生成
         max_wait = 60  # 最大等待时间（秒）
         wait_time = 0
-        while not is_paper_fully_processed(pmid) and wait_time < max_wait:
+        while not is_paper_fully_processed(pmid, prompt_version) and wait_time < max_wait:
             time.sleep(1)
             wait_time += 1
             if wait_time % 5 == 0:
@@ -219,22 +287,99 @@ def scrape_paper(pmid: str, paper_url: str):
         traceback.print_exc()
         return False
 
-def get_paper_data_path(pmid):
-    """获取论文数据文件路径"""
+def get_paper_data_path(pmid, prompt_version=None):
+    """获取论文数据文件路径，支持版本化存储
+    
+    Args:
+        pmid: 论文PMID
+        prompt_version: 提示词版本，为None时使用主数据
+        
+    Returns:
+        str: 数据文件路径
+    """
+    if prompt_version:
+        # 使用Prompt_Temp下对应版本目录
+        return os.path.join(get_prompt_temp_dir(), pmid, prompt_version, 'data.json')
+    
+    # 默认使用主数据目录
     return os.path.join(get_main_data_path(pmid), 'data.json')
 
-def get_paper_output_path(pmid):
-    """获取论文分析输出文件路径"""
+def get_paper_output_path(pmid, prompt_version=None):
+    """获取论文分析输出文件路径，支持版本化存储
+    
+    Args:
+        pmid: 论文PMID
+        prompt_version: 提示词版本，为None时使用主数据
+        
+    Returns:
+        str: 输出文件路径
+    """
+    if prompt_version:
+        # 使用Prompt_Temp下对应版本目录
+        return os.path.join(get_prompt_temp_dir(), pmid, prompt_version, 'original_output.json')
+    
+    # 默认使用主数据目录
     return os.path.join(get_main_data_path(pmid), 'original_output.json')
 
-def is_paper_fully_processed(pmid):
-    """检查论文是否完全处理完成（包括数据爬取和分析生成）"""
-    output_path = get_paper_output_path(pmid)
-    return os.path.exists(output_path)
+def is_paper_fully_processed(pmid, prompt_version=None):
+    """检查论文是否完全处理完成（包括数据爬取和分析生成），支持版本化检查
+    
+    Args:
+        pmid: 论文PMID
+        prompt_version: 提示词版本，为None时检查主数据
+        
+    Returns:
+        bool: 是否完全处理
+    """
+    # 检查original_output.json
+    if prompt_version:
+        output_path = get_paper_output_path(pmid, prompt_version)
+    else:
+        output_path = get_paper_output_path(pmid)
+        
+    # 检查data.json
+    if prompt_version:
+        # 修复：使用对应版本的data.json路径
+        data_path = get_paper_data_path(pmid, prompt_version)
+    else:
+        data_path = get_paper_data_path(pmid)
+    
+    # 输出详细的检查信息
+    data_exists = os.path.exists(data_path)
+    output_exists = os.path.exists(output_path)
+    
+    # 输出当前项目上下文信息
+    current_project = "Unknown"
+    try:
+        current_project = get_current_project_name()
+    except Exception as e:
+        print(f"[PAPER-CHECK] Warning: Failed to get current project name: {str(e)}")
+    
+    print(f"[PAPER-CHECK] Checking if paper {pmid} is fully processed:")
+    print(f"[PAPER-CHECK]   - Current project: {current_project}")
+    print(f"[PAPER-CHECK]   - Prompt version: {prompt_version if prompt_version else 'None (Main)'}")
+    print(f"[PAPER-CHECK]   - Data path: {data_path}, exists: {data_exists}")
+    print(f"[PAPER-CHECK]   - Output path: {output_path}, exists: {output_exists}")
+    
+    is_processed = data_exists and output_exists
+    print(f"[PAPER-CHECK]   - Is fully processed: {is_processed}")
+    
+    return is_processed
 
-def load_paper_data(pmid):
-    """加载论文数据（包括评论）"""
-    data_path = get_paper_data_path(pmid)
+def load_paper_data(pmid, prompt_version=None):
+    """加载论文数据（包括评论），支持版本化加载
+    
+    Args:
+        pmid: 论文PMID
+        prompt_version: 提示词版本，为None时加载主数据
+        
+    Returns:
+        dict: 论文数据
+    """
+    if prompt_version:
+        data_path = get_paper_data_path(pmid, prompt_version)
+    else:
+        data_path = get_paper_data_path(pmid)
     if os.path.exists(data_path):
         with open(data_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -244,14 +389,23 @@ def load_paper_data(pmid):
             return data
     return {"title": "", "abstract": "", "comments": []}
 
-def save_paper_data(pmid, data):
-    """保存论文数据（包括评论）"""
-    data_path = get_paper_data_path(pmid)
+def save_paper_data(pmid, data, prompt_version=None):
+    """保存论文数据（包括评论），支持版本化存储
+    
+    Args:
+        pmid: 论文PMID
+        data: 论文数据
+        prompt_version: 提示词版本，为None时保存到主数据
+    """
+    if prompt_version:
+        data_path = get_paper_data_path(pmid, prompt_version)
+    else:
+        data_path = get_paper_data_path(pmid)
     ensure_directory_exists(os.path.dirname(data_path))
     with open(data_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-def initialize_paper_data(paper_url):
+def initialize_paper_data(paper_url, prompt_version=None):
     """初始化论文数据，如果不存在则爬取"""
     try:
         pmid = paper_url.rstrip('/').split('/')[-1]
@@ -271,11 +425,34 @@ def initialize_paper_data(paper_url):
                     data['comments'] = []
                     save_paper_data(pmid, data)
                     
+                # 如果提供了 prompt_version，且该版本数据不存在，则应先将主数据复制到版本目录
+                if prompt_version and is_paper_fully_processed(pmid, prompt_version):
+                    save_paper_data(pmid, data, prompt_version) # 将主数据保存为特定版本的数据
+
                 # 需要继续生成分析结果，但这将在调用方完成
+                # 或者，如果 initialize_paper_data 负责完整处理，则在此处调用 generate_initial_analysis
+                # generate_initial_analysis(data, pmid, prompt_version=prompt_version)
                 return data
         
-        # 直接开始爬取（新论文）
-        return scrape_paper(pmid, paper_url)
+        # 如果未完全处理，则检查数据文件 data.json 是否存在（但分析文件 original_output.json 不存在）
+        # 如果提供了 prompt_version，检查 Prompt_Temp/<pmid>/<prompt_version>/data.json
+        # 否则，检查 Main_dir/<pmid>/original_data/data.json
+        data_path = get_paper_data_path(pmid, prompt_version if prompt_version else None)
+        if os.path.exists(data_path): # 如果 data.json 存在
+            with open(data_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                # 确保评论字段存在
+                if 'comments' not in data:
+                    data['comments'] = []
+                    # 注意：这里保存的是加载到的 data_path 对应的文件，可能是版本文件，也可能是主数据文件
+                    save_paper_data(pmid, data, prompt_version if prompt_version else None) 
+            return data # 返回已存在的 data.json 内容（可能是主数据，也可能是版本数据）
+        
+        # 如果执行到这里，说明：
+        # 1. 目标版本（或主数据，如果 prompt_version 为 None）的 original_output.json 不存在。
+        # 2. 目标版本（或主数据，如果 prompt_version 为 None）的 data.json 也不存在。
+        # 因此，需要进行爬取。
+        return scrape_paper(pmid, paper_url, prompt_version=prompt_version)
             
     except Exception as e:
         print(f"Error initializing paper data: {str(e)}")
@@ -283,11 +460,22 @@ def initialize_paper_data(paper_url):
         traceback.print_exc()
         raise
 
-def generate_initial_analysis(article_data, pmid):
-    """生成初始分析数据"""
+def generate_initial_analysis(article_data, pmid, prompt_version=None):
+    """生成初始分析数据，支持版本化保存
+    
+    Args:
+        article_data: 论文数据
+        pmid: 论文PMID
+        prompt_version: 提示词版本，为None时保存到主数据
+        
+    Returns:
+        dict: 分析结果
+    """
     try:
-        main_data_path = get_main_data_path(pmid)
-        output_path = os.path.join(main_data_path, 'original_output.json')
+        output_path = get_paper_output_path(pmid, prompt_version)
+        
+        # 确保输出目录存在
+        ensure_directory_exists(os.path.dirname(output_path))
         
         if os.path.exists(output_path):
             with open(output_path, 'r', encoding='utf-8') as f:
@@ -295,6 +483,11 @@ def generate_initial_analysis(article_data, pmid):
         
         # 使用extractor模块代替generator模块
         from utils.extractor import process_paper
+        
+        # 如果指定了prompt版本，先保存论文数据到对应版本目录
+        if prompt_version:
+            save_paper_data(pmid, article_data, prompt_version)
+        
         process_paper(
             title=article_data["title"],
             abstract=article_data["abstract"], 
@@ -427,8 +620,9 @@ def get_paper_analysis():
         username = request.args.get('username')
         mode = request.args.get('mode', 'view')  # 新增mode参数
         target_user = request.args.get('user', username)  # 修改这里：默认使用当前用户
+        prompt_version = request.args.get('promptVersion') or session.get('current_prompt_version')  # 从查询参数或session获取prompt_version
         
-        print(f"Received request - URL: {paper_url}, Username: {username}, Mode: {mode}, Target User: {target_user}")
+        print(f"Received request - URL: {paper_url}, Username: {username}, Mode: {mode}, Target User: {target_user}, Prompt Version: {prompt_version}")
         
         # 参数验证
         if not paper_url:
@@ -444,20 +638,37 @@ def get_paper_analysis():
         main_path = get_main_data_path(pmid)
         print(f"Main path: {main_path}")
         
-        # 读取论文基本数据
-        data_file = os.path.join(main_path, 'data.json')
+        # 读取论文基本数据 - 支持prompt版本
+        data_file = get_paper_data_path(pmid, prompt_version)
         if not os.path.exists(data_file):
             print(f"Data file not found: {data_file}")
-            return jsonify({
-                "error": "Paper data not found",
-                "message": "No data found for this paper"
-            }), 404
+            # 如果是prompt版本但找不到对应文件，尝试从主数据读取
+            if prompt_version:
+                data_file = get_paper_data_path(pmid)
+            
+            # 如果仍然找不到数据，返回错误
+            if not os.path.exists(data_file):
+                return jsonify({
+                    "error": "Paper data not found",
+                    "message": "No data found for this paper"
+                }), 404
             
         with open(data_file, 'r', encoding='utf-8') as f:
             article_data = json.load(f)
         
-        # 根据模式决定读取路径
-        if mode == 'temp':
+        # 如果指定了prompt版本，直接使用对应版本的分析结果
+        if prompt_version:
+            print(f"Processing with prompt version: {prompt_version}")
+            output_path = get_paper_output_path(pmid, prompt_version)
+            
+            if not os.path.exists(output_path):
+                print(f"Prompt version data not found at: {output_path}")
+                return jsonify({
+                    "error": "Prompt version data not found",
+                    "message": f"No data found for prompt version {prompt_version}"
+                }), 404
+        # 否则按照原有模式处理
+        elif mode == 'temp':
             print("Processing in temp mode")
             # 如果是 temp 模式，检查临时目录
             temp_path = get_temp_data_path(username, pmid)
@@ -642,6 +853,18 @@ def update_analysis():
         target_user = request.json.get('user')  # 获取目标用户
         context_data = request.json.get('context', [])  # 获取context数据
         edit_duration = request.json.get('editDuration')  # 获取编辑用时
+        
+        # 检查是否有prompt_version在session中
+        prompt_version = session.get('current_prompt_version')
+        
+        # 如果存在prompt_version，不保存任何数据，只返回成功响应
+        if prompt_version:
+            print(f"Prompt version {prompt_version} detected, skipping data save")
+            return jsonify({
+                "message": "Update received but not saved due to prompt version mode",
+                "data": frontend_data,
+                "timestamp": time.time()
+            })
         
         if not paper_url or not username:
             return jsonify({"error": "URL and username are required"}), 400
@@ -915,93 +1138,130 @@ def get_original_relations():
         }), 500
 def ensure_users_file():
     """Ensure the user data file exists; if not, create a default file."""
-    if not os.path.exists(USERS_FILE):
-        os.makedirs(os.path.dirname(USERS_FILE), exist_ok=True)
+    users_file = get_users_file()
+    if not os.path.exists(users_file):
+        ensure_directory_exists(os.path.dirname(users_file))
         default_data = {
             "users": [
                 {
-                    "id": 1,
-                    "username": "Admin"
+                    "username": "Admin",
+                    "password": "123456"
                 }
             ]
         }
-        with open(USERS_FILE, 'w', encoding='utf-8') as f:
+        with open(users_file, 'w', encoding='utf-8') as f:
             json.dump(default_data, f, indent=2)
     else:
         # Check if the file content is correct
         try:
-            with open(USERS_FILE, 'r', encoding='utf-8') as f:
+            with open(users_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             if not data.get('users'):
-                data['users'] = [{"id": 1, "username": "Admin"}]
-                with open(USERS_FILE, 'w', encoding='utf-8') as f:
+                data['users'] = [{"username": "Admin", "password": "123456"}]
+                with open(users_file, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=2)
         except Exception:
             # If the file is corrupted or incorrectly formatted, recreate it
             default_data = {
                 "users": [
                     {
-                        "id": 1,
-                        "username": "Admin"
+                        "username": "Admin",
+                        "password": "123456"
                     }
                 ]
             }
-            with open(USERS_FILE, 'w', encoding='utf-8') as f:
+            with open(users_file, 'w', encoding='utf-8') as f:
                 json.dump(default_data, f, indent=2)
 
 @app.route('/api/users', methods=['GET'])
 def get_users():
-    """Get the list of all users"""
+    """Get the list of all users with their credentials"""
     try:
         ensure_users_file()
-        with open(USERS_FILE, 'r', encoding='utf-8') as f:
+        users_file = get_users_file()
+        with open(users_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
             # Ensure the returned data format is correct
             if not isinstance(data, dict) or 'users' not in data:
-                data = {"users": [{"id": 1, "username": "Admin"}]}
+                data = {"users": [{"username": "Admin", "password": "123456"}]}
             # Ensure the Admin user always exists
             admin_exists = any(user['username'] == 'Admin' for user in data['users'])
             if not admin_exists:
-                data['users'].insert(0, {"id": 1, "username": "Admin"})
+                data['users'].insert(0, {"username": "Admin", "password": "123456"})
             return jsonify(data)
     except Exception as e:
         print(f"Error loading users: {str(e)}")
         # Return default data in case of an error
-        return jsonify({"users": [{"id": 1, "username": "Admin"}]})
+        return jsonify({"users": [{"username": "Admin", "password": "123456"}]})
 
 @app.route('/api/users', methods=['POST'])
 def add_user():
     """Add a new user"""
     try:
         username = request.json.get('username')
-        if not username:
-            return jsonify({"error": "Username is required"}), 400
+        password = request.json.get('password')  # 获取密码参数
+        if not username or not password:  # 检查用户名和密码
+            return jsonify({"error": "Username and password are required"}), 400
 
         ensure_users_file()
-        with open(USERS_FILE, 'r', encoding='utf-8') as f:
+        users_file = get_users_file()
+        with open(users_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
         # Check if the username already exists
         if any(user['username'] == username for user in data['users']):
             return jsonify({"error": "Username already exists"}), 400
-
-        # Generate a new user ID
-        new_id = max([user['id'] for user in data['users']], default=0) + 1
         
-        # Add the new user
+        # Add the new user with password
         data['users'].append({
-            "id": new_id,
-            "username": username
+            "username": username,
+            "password": password
         })
 
         # Save the updated data
-        with open(USERS_FILE, 'w', encoding='utf-8') as f:
+        with open(users_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
 
         return jsonify({"success": True, "message": "User added successfully"})
 
     except Exception as e:
         print(f"Error adding user: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/users/password', methods=['PUT'])
+def reset_password():
+    """Reset user password"""
+    try:
+        username = request.json.get('username')
+        new_password = request.json.get('newPassword')
+        
+        if not username or not new_password:
+            return jsonify({"error": "Username and new password are required"}), 400
+
+        ensure_users_file()
+        users_file = get_users_file()
+        with open(users_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        # Find and update user password
+        user_found = False
+        for user in data['users']:
+            if user['username'] == username:
+                user['password'] = new_password
+                user_found = True
+                break
+
+        if not user_found:
+            return jsonify({"error": "User not found"}), 404
+
+        # Save the updated data
+        with open(users_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+
+        return jsonify({"success": True, "message": "Password reset successfully"})
+
+    except Exception as e:
+        print(f"Error resetting password: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/comments', methods=['GET'])
@@ -1355,9 +1615,14 @@ def get_papers():
         user_access = load_user_access()
         
         # Iterate through the Main_dir directory
-        for pmid in os.listdir(MAIN_DIR):
-            paper_path = os.path.join(MAIN_DIR, pmid)
-            if os.path.isdir(paper_path):
+        main_dir = get_main_dir()
+        if not os.path.exists(main_dir):
+            print(f"Warning: Main_dir path does not exist: {main_dir}")
+            return jsonify({"papers": [], "message": "Main directory not found"})
+        
+        for pmid in os.listdir(main_dir):
+            pmid_path = os.path.join(main_dir, pmid)
+            if os.path.isdir(pmid_path):
                 # Check if the paper is fully processed
                 if not is_paper_fully_processed(pmid):
                     continue
@@ -1369,14 +1634,14 @@ def get_papers():
                         continue
                 
                 # Read paper data
-                data_file = os.path.join(paper_path, 'original_data', 'data.json')
+                data_file = os.path.join(pmid_path, 'original_data', 'data.json')
                 if os.path.exists(data_file):
                     with open(data_file, 'r', encoding='utf-8') as f:
                         paper_data = json.load(f)
                         
                     # Get the list of assigned users
                     assigned_users = ['Main']  # Default includes Main
-                    user_dir = os.path.join(paper_path, 'User_dir')
+                    user_dir = os.path.join(pmid_path, 'User_dir')
                     if os.path.exists(user_dir):
                         # Add all users under User_dir
                         for user in os.listdir(user_dir):
@@ -1393,12 +1658,9 @@ def get_papers():
                     papers.append(paper_info)
         
         return jsonify({'papers': papers})
-        
     except Exception as e:
-        print(f"Error getting papers: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        print(f"Error loading papers: {str(e)}")
+        return jsonify({"papers": [], "error": str(e)})
 @app.route('/api/initialize-paper', methods=['POST'])
 def initialize_paper():
     """API endpoint to initialize paper data"""
@@ -1407,7 +1669,8 @@ def initialize_paper():
         data = request.json
         paper_url = data.get('url')
         username = data.get('username')
-        
+        prompt_version = data.get('promptVersion') # 获取 promptVersion
+
         if not paper_url:
             return jsonify({"error": "URL is required"}), 400
             
@@ -1475,7 +1738,7 @@ def initialize_paper():
             
         # Call the initialization function for new papers
         try:
-            article_data = initialize_paper_data(paper_url)
+            article_data = initialize_paper_data(paper_url, prompt_version=prompt_version) # 传递 prompt_version
             if article_data is None:
                 return jsonify({
                     "error": "Failed to initialize paper",
@@ -1483,7 +1746,10 @@ def initialize_paper():
                 }), 409
                 
             # Generate initial analysis
-            analysis_data = generate_initial_analysis(article_data, pmid)
+            # 确保在调用 generate_initial_analysis 时也考虑 prompt_version
+            # initialize_paper_data 内部的 scrape_paper 会调用 generate_initial_analysis，它需要接收 prompt_version
+            # 如果 initialize_paper_data 未调用 scrape_paper (因为数据已存在)，则它自己需要调用 generate_initial_analysis 并传递 prompt_version
+            analysis_data = generate_initial_analysis(article_data, pmid, prompt_version=prompt_version)
             
             # After processing the paper, add user access permissions
             try:
@@ -1540,11 +1806,12 @@ def process_queue():
         total_papers_to_scrape = scraping_queue.qsize()
         print(f"Initialized queue processing with {total_papers_to_scrape} papers")
 
-def process_paper_with_retry(url, max_retries=3, retry_delay=5):
+def process_paper_with_retry(url, prompt_version=None, max_retries=3, retry_delay=5):
     """Process a single paper with retry mechanism
     
     Args:
         url: Paper URL
+        prompt_version: Prompt version to use for processing
         max_retries: Maximum number of retries
         retry_delay: Retry interval (seconds)
     
@@ -1561,14 +1828,14 @@ def process_paper_with_retry(url, max_retries=3, retry_delay=5):
                 time.sleep(retry_delay)
                 
             # Wait for scraping and analysis to complete
-            print(f"Scraping paper {pmid}...")
-            success = scrape_paper(pmid, url)
+            print(f"Scraping paper {pmid} with prompt version: {prompt_version}")
+            success = scrape_paper(pmid, url, prompt_version=prompt_version) # 传递 prompt_version
             
             if success:
                 print(f"Paper {pmid} scraped successfully, checking if fully processed...")
-                if is_paper_fully_processed(pmid):  # Ensure the paper is fully processed
+                if is_paper_fully_processed(pmid, prompt_version):  # Ensure the paper is fully processed with prompt_version
                     # Read the generated data
-                    data_path = get_paper_data_path(pmid)
+                    data_path = get_paper_data_path(pmid, prompt_version=prompt_version) # 使用 prompt_version 获取路径
                     print(f"Reading data for paper {pmid} from {data_path}")
                     with open(data_path, 'r', encoding='utf-8') as f:
                         article_data = json.load(f)
@@ -1603,18 +1870,39 @@ def process_papers_async():
         
         # 从队列中获取所有论文并提交到线程池
         while not scraping_queue.empty():
-            url, username = scraping_queue.get()
-            pmid = url.rstrip('/').split('/')[-1]
+            # 更新队列项结构，添加项目名称
+            if scraping_queue.qsize() > 0:
+                try:
+                    queue_item = scraping_queue.get()
+                    # 兼容新旧队列项格式
+                    if len(queue_item) >= 5:  # 新格式: (url, username, prompt_version, project_name, pmid)
+                        url, username, prompt_version, project_name, pmid = queue_item
+                        print(f"[ASYNC-PROCESS] Processing paper with project context: PMID {pmid}, project {project_name}")
+                    else:  # 旧格式: (url, username, prompt_version)
+                        url, username, prompt_version = queue_item
+                        project_name = 'default'  # 使用默认项目名
+                        pmid = url.rstrip('/').split('/')[-1]
+                        print(f"[ASYNC-PROCESS] Processing paper with default project: PMID {pmid}")
+                except Exception as e:
+                    print(f"[ASYNC-PROCESS] ERROR extracting queue item: {str(e)}")
+                    continue
+            else:
+                break
             
             # 使用锁保护对in_progress_papers的访问
             with progress_lock:
                 in_progress_papers.add(pmid)  # 添加到处理中集合
             
             # 存储URL和用户名信息以便后续使用
-            paper_info[pmid] = {'url': url, 'username': username}
+            paper_info[pmid] = {
+                'url': url, 
+                'username': username, 
+                'prompt_version': prompt_version,
+                'project_name': project_name  # 保存项目名称
+            }
             
-            # 提交任务到线程池
-            future = executor.submit(process_paper_with_retry, url)
+            # 提交任务到线程池，传递项目名称
+            future = executor.submit(process_paper_with_project_context, url, prompt_version, project_name)
             future_to_paper[future] = pmid
             
         # 处理完成的任务结果
@@ -1622,6 +1910,8 @@ def process_papers_async():
             pmid = future_to_paper[future]
             url = paper_info[pmid]['url']
             username = paper_info[pmid]['username']
+            prompt_version = paper_info[pmid]['prompt_version']
+            project_name = paper_info[pmid]['project_name']  # 获取保存的项目名称
             
             try:
                 success, article_data, error_message = future.result()
@@ -1629,7 +1919,7 @@ def process_papers_async():
                 # 使用锁保护对completed_papers的访问
                 with progress_lock:
                     if success:
-                        print(f"Successfully processed paper: {url}")
+                        print(f"[ASYNC-PROCESS] Successfully processed paper: PMID {pmid}, project {project_name}")
                         # 处理成功，添加用户访问权限
                         try:
                             access_data = load_user_access()
@@ -1638,29 +1928,31 @@ def process_papers_async():
                             if username not in access_data[pmid]["access_users"] and username != "Admin" and username != "Main":
                                 access_data[pmid]["access_users"].append(username)
                                 save_user_access(access_data)
-                                print(f"Added access for user {username} to batch paper {pmid}")
+                                print(f"[ASYNC-PROCESS] Added access for user {username} to batch paper {pmid}")
                             else:
-                                print(f"Skipped adding access for user {username} to batch paper {pmid} (Admin/Main user or already has access)")
+                                print(f"[ASYNC-PROCESS] Skipped adding access for user {username} to batch paper {pmid} (Admin/Main user or already has access)")
                         except Exception as e:
-                            print(f"Error updating user access: {str(e)}")
+                            print(f"[ASYNC-PROCESS] Error updating user access: {str(e)}")
                         
                         # 添加到成功列表
                         completed_papers.append({
                             'url': url,
                             'pmid': pmid,
-                            'status': 'success'
+                            'status': 'success',
+                            'project': project_name  # 记录项目名称
                         })
                     else:
-                        print(f"Failed to process paper: {url}")
+                        print(f"[ASYNC-PROCESS] Failed to process paper: PMID {pmid}, project {project_name}, error: {error_message}")
                         # 记录失败的论文
                         completed_papers.append({
                             'url': url,
                             'pmid': pmid,
                             'status': 'failed',
-                            'error': error_message
+                            'error': error_message,
+                            'project': project_name  # 记录项目名称
                         })
             except Exception as e:
-                print(f"Error processing paper {url}: {str(e)}")
+                print(f"[ASYNC-PROCESS] Error processing paper {url}: {str(e)}")
                 # 使用锁保护对completed_papers的访问
                 with progress_lock:
                     # 记录处理出错的论文
@@ -1668,14 +1960,166 @@ def process_papers_async():
                         'url': url,
                         'pmid': pmid,
                         'status': 'error',
-                        'error': str(e)
+                        'error': str(e),
+                        'project': project_name  # 记录项目名称
                     })
             finally:
                 # 使用锁保护对in_progress_papers的访问
                 with progress_lock:
                     # 从处理中集合移除并标记队列任务完成
-                    in_progress_papers.remove(pmid)
+                    if pmid in in_progress_papers:
+                        in_progress_papers.remove(pmid)
                 scraping_queue.task_done()
+
+# 新增函数：在特定项目上下文中处理论文
+def process_paper_with_project_context(url, prompt_version=None, project_name='default'):
+    """在指定项目上下文中处理单个论文
+    
+    Args:
+        url: 论文URL
+        prompt_version: 提示词版本
+        project_name: 项目名称
+    
+    Returns:
+        tuple: (success, article_data, error_message)
+    """
+    pmid = url.rstrip('/').split('/')[-1]
+    print(f"[PAPER-PROCESS] Starting to process paper: {pmid} in project {project_name}")
+    
+    # 保存当前项目名，以便后续恢复
+    try:
+        # 这里不能直接修改Flask session，因为在线程中没有请求上下文
+        # 我们需要使用一个专门为线程设计的上下文管理机制
+        
+        # 创建临时目录路径
+        if project_name != 'default':
+            project_dir = os.path.join(ROOT_DIR, 'projects', project_name)
+            main_dir = os.path.join(project_dir, 'Main_dir')
+            temp_dir = os.path.join(project_dir, 'Temp_dir')
+            prompt_temp_dir = os.path.join(project_dir, 'Prompt_Temp')
+            
+            print(f"[PAPER-PROCESS] Project context - project: {project_name}")
+            print(f"[PAPER-PROCESS] Project context - main_dir: {main_dir}")
+            print(f"[PAPER-PROCESS] Project context - temp_dir: {temp_dir}")
+            
+            # 确保目录存在
+            if not os.path.exists(main_dir):
+                print(f"[PAPER-PROCESS] WARNING: Main directory does not exist: {main_dir}")
+                os.makedirs(main_dir, exist_ok=True)
+                print(f"[PAPER-PROCESS] Created main directory: {main_dir}")
+            
+            if not os.path.exists(temp_dir):
+                print(f"[PAPER-PROCESS] WARNING: Temp directory does not exist: {temp_dir}")
+                os.makedirs(temp_dir, exist_ok=True)
+                print(f"[PAPER-PROCESS] Created temp directory: {temp_dir}")
+            
+            if prompt_version and not os.path.exists(prompt_temp_dir):
+                print(f"[PAPER-PROCESS] WARNING: Prompt temp directory does not exist: {prompt_temp_dir}")
+                os.makedirs(prompt_temp_dir, exist_ok=True)
+                print(f"[PAPER-PROCESS] Created prompt temp directory: {prompt_temp_dir}")
+        
+        # 调用实际的处理函数，并传递项目上下文信息
+        return process_paper_with_retry_in_context(url, prompt_version, project_name)
+            
+    except Exception as e:
+        error_message = f"Error in project context setup: {str(e)}"
+        print(f"[PAPER-PROCESS] {error_message}")
+        import traceback
+        traceback.print_exc()
+        return False, None, error_message
+
+# 新增函数：在特定项目上下文中处理论文（带重试）
+def process_paper_with_retry_in_context(url, prompt_version=None, project_name='default', max_retries=3, retry_delay=5):
+    """在指定项目上下文中处理单个论文，带重试机制
+    
+    Args:
+        url: 论文URL
+        prompt_version: 提示词版本
+        project_name: 项目名称
+        max_retries: 最大重试次数
+        retry_delay: 重试间隔（秒）
+    
+    Returns:
+        tuple: (success, article_data, error_message)
+    """
+    pmid = url.rstrip('/').split('/')[-1]
+    print(f"[PAPER-RETRY] Starting to process paper: {pmid} in project {project_name}")
+    
+    # 构造项目特定的路径
+    project_dir = os.path.join(ROOT_DIR, 'projects', project_name)
+    main_dir = os.path.join(project_dir, 'Main_dir')
+    main_data_path = os.path.join(main_dir, pmid, 'original_data')
+    
+    if prompt_version:
+        prompt_temp_dir = os.path.join(project_dir, 'Prompt_Temp')
+        data_path = os.path.join(prompt_temp_dir, pmid, prompt_version, 'data.json')
+        output_path = os.path.join(prompt_temp_dir, pmid, prompt_version, 'original_output.json')
+    else:
+        data_path = os.path.join(main_data_path, 'data.json')
+        output_path = os.path.join(main_data_path, 'original_output.json')
+    
+    print(f"[PAPER-RETRY] Paper paths - data: {data_path}")
+    print(f"[PAPER-RETRY] Paper paths - output: {output_path}")
+    
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                print(f"[PAPER-RETRY] Retrying paper {pmid} (attempt {attempt + 1}/{max_retries})...")
+                time.sleep(retry_delay)
+                
+            # 确保目录存在
+            ensure_directory_exists(os.path.dirname(data_path))
+            
+            # 爬取论文数据
+            print(f"[PAPER-RETRY] Scraping paper {pmid} with prompt version: {prompt_version}")
+            
+            # 手动爬取论文，绕过项目上下文依赖
+            article_json = extract_article_to_json(url)
+            article_data = json.loads(article_json)
+            
+            utc_time = datetime.now(pytz.UTC)
+            article_data["extraction_time"] = utc_time.strftime("%B %d, %Y %I:%M %p %Z")
+            
+            # 保存数据到指定路径
+            with open(data_path, 'w', encoding='utf-8') as f:
+                json.dump(article_data, f, indent=2, ensure_ascii=False)
+                
+            print(f"[PAPER-RETRY] Paper {pmid} data saved to {data_path}")
+            
+            # 生成分析结果
+            from utils.extractor import process_paper
+            process_paper(
+                title=article_data["title"],
+                abstract=article_data["abstract"], 
+                output_path=output_path,
+                pmid=pmid
+            )
+            
+            print(f"[PAPER-RETRY] Analysis generated for paper {pmid} at {output_path}")
+            
+            # 验证文件是否存在
+            if os.path.exists(data_path) and os.path.exists(output_path):
+                print(f"[PAPER-RETRY] Paper {pmid} processing completed successfully")
+                # 读取生成的数据
+                with open(data_path, 'r', encoding='utf-8') as f:
+                    article_data = json.load(f)
+                return True, article_data, None
+            else:
+                missing_files = []
+                if not os.path.exists(data_path):
+                    missing_files.append(data_path)
+                if not os.path.exists(output_path):
+                    missing_files.append(output_path)
+                raise Exception(f"Paper {pmid} processing incomplete, missing files: {', '.join(missing_files)}")
+                
+        except Exception as e:
+            error_message = str(e)
+            print(f"[PAPER-RETRY] Attempt {attempt + 1}/{max_retries} for paper {pmid} failed: {error_message}")
+            if attempt == max_retries - 1:  # Last attempt
+                print(f"[PAPER-RETRY] All attempts failed for paper {pmid}: {error_message}")
+                return False, None, error_message
+            
+    return False, None, "Maximum retries exceeded"
 
 @app.route('/api/scraping-status', methods=['GET'])
 def get_scraping_status():
@@ -1708,6 +2152,7 @@ def batch_initialize():
             
         file = request.files['file']
         username = request.form.get('username')
+        prompt_version = request.form.get('promptVersion') # 获取 promptVersion
         
         if not username:
             return jsonify({"error": "Username is required"}), 400
@@ -1744,7 +2189,7 @@ def batch_initialize():
         
         # Add all URLs to the queue
         for url in urls:
-            scraping_queue.put((url, username))  # Put username and URL into the queue together
+            scraping_queue.put((url, username, prompt_version))  # 将 username, URL 和 prompt_version 一起放入队列
         
         # Initialize progress tracking
         process_queue()
@@ -1776,8 +2221,15 @@ def get_graph():
         mode = request.args.get('mode', 'view')
         target_user = request.args.get('target_user', username)
         
-        # Determine JSON file path based on mode and target user
-        if mode == 'temp':
+        # 检查是否有prompt_version在session中
+        prompt_version = session.get('current_prompt_version')
+        
+        # 确定JSON文件路径
+        if prompt_version:
+            # 如果session中存在prompt_version，从prompt版本目录读取
+            graph_file_path = get_paper_output_path(pmid, prompt_version)
+            print(f"Loading graph data from prompt version directory: {graph_file_path}")
+        elif mode == 'temp':
             # Temporary mode: load from temporary directory
             graph_file_path = os.path.join(get_temp_data_path(username, pmid), 'last_modify_output.json')
         else:
@@ -1819,8 +2271,23 @@ def get_graph():
 def serve_lib(filename):
     """Provide static file service for visualization library"""
     try:
-        # Assume the lib folder is in the project root directory
-        return send_from_directory(os.path.join(ROOT_DIR, 'lib'), filename)
+        # 1. 首先尝试使用当前项目的lib目录
+        current_lib_path = os.path.join(get_project_dir(), 'lib')
+        if os.path.exists(os.path.join(current_lib_path, filename)):
+            print(f"Serving {filename} from current project lib: {current_lib_path}")
+            return send_from_directory(current_lib_path, filename)
+            
+        # 2. 如果当前项目中没有，尝试从default项目获取
+        default_lib_path = os.path.join(ROOT_DIR, 'projects', 'default', 'lib')
+        if os.path.exists(os.path.join(default_lib_path, filename)):
+            print(f"Serving {filename} from default project lib: {default_lib_path}")
+            return send_from_directory(default_lib_path, filename)
+        
+        # 3. 最后尝试从ROOT_DIR/lib获取（向后兼容）
+        root_lib_path = os.path.join(ROOT_DIR, 'lib')
+        print(f"Serving {filename} from root lib: {root_lib_path}")
+        return send_from_directory(root_lib_path, filename)
+            
     except Exception as e:
         print(f"Error serving static file: {str(e)}")
         return jsonify({"error": "File not found"}), 404
@@ -1892,7 +2359,7 @@ def download_papers():
         with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
             # Iterate through all selected PMIDs
             for pmid in pmids:
-                paper_path = os.path.join(MAIN_DIR, pmid)
+                paper_path = os.path.join(get_main_dir(), pmid)
                 
                 # Check if the paper directory exists
                 if not os.path.exists(paper_path):
@@ -1930,18 +2397,19 @@ def get_type_name_config():
     """Get Type and Name configuration data"""
     try:
         # Ensure the configuration file exists
-        if not os.path.exists(TYPE_NAME_CONFIG_FILE):
+        type_name_config_file = get_type_name_config_file()
+        if not os.path.exists(type_name_config_file):
             # If the file does not exist, create a default configuration file
             default_config = {
                 "type": ["General Information", "Disease", "Cell/Tissue-Specific"],
                 "name": ["Cancer", "Inflammation", "Cell-Type Specific"]
             }
-            with open(TYPE_NAME_CONFIG_FILE, 'w', encoding='utf-8') as f:
+            with open(type_name_config_file, 'w', encoding='utf-8') as f:
                 json.dump(default_config, f, indent=4, ensure_ascii=False)
             return jsonify(default_config)
         
         # Read the configuration file
-        with open(TYPE_NAME_CONFIG_FILE, 'r', encoding='utf-8') as f:
+        with open(type_name_config_file, 'r', encoding='utf-8') as f:
             config_data = json.load(f)
         
         return jsonify(config_data)
@@ -1967,7 +2435,8 @@ def update_type_name_config():
             return jsonify({"error": "Invalid configuration format. 'type' and 'name' must be arrays."}), 400
         
         # Save the configuration to the file
-        with open(TYPE_NAME_CONFIG_FILE, 'w', encoding='utf-8') as f:
+        type_name_config_file = get_type_name_config_file()
+        with open(type_name_config_file, 'w', encoding='utf-8') as f:
             json.dump(config_data, f, indent=4, ensure_ascii=False)
         
         return jsonify({"success": True, "message": "Configuration updated successfully"})
@@ -1982,7 +2451,8 @@ def update_type_name_config():
 def get_prompt_config():
     """Get prompt configuration"""
     try:
-        if not os.path.exists(PROMPT_CONFIG_FILE):
+        prompt_config_file = get_prompt_config_file()
+        if not os.path.exists(prompt_config_file):
             # If the file does not exist, return default configuration
             default_config = {
                 "PROMPT_TEMPLATE": "Default prompt template",
@@ -1990,7 +2460,7 @@ def get_prompt_config():
             }
             return jsonify(default_config)
         
-        with open(PROMPT_CONFIG_FILE, 'r', encoding='utf-8') as f:
+        with open(prompt_config_file, 'r', encoding='utf-8') as f:
             config = json.load(f)
             return jsonify(config)
     except Exception as e:
@@ -2003,16 +2473,28 @@ def update_prompt_config():
     try:
         data = request.get_json()
         
-        # Validate the data structure
-        if 'PROMPT_TEMPLATE' not in data or 'JSON_PROMPT_TEMPLATE' not in data:
-            return jsonify({"error": "Invalid data structure"}), 400
+        # Validate the data structure - only require PROMPT_TEMPLATE
+        if 'PROMPT_TEMPLATE' not in data:
+            return jsonify({"error": "Invalid data structure - PROMPT_TEMPLATE is required"}), 400
+        
+        # Get the prompt config file path
+        prompt_config_file = get_prompt_config_file()
+        
+        # Load existing configuration to preserve JSON_PROMPT_TEMPLATE
+        existing_config = {}
+        if os.path.exists(prompt_config_file):
+            with open(prompt_config_file, 'r', encoding='utf-8') as f:
+                existing_config = json.load(f)
+        
+        # Update only PROMPT_TEMPLATE and preserve JSON_PROMPT_TEMPLATE
+        existing_config['PROMPT_TEMPLATE'] = data['PROMPT_TEMPLATE']
         
         # Ensure the directory exists
-        os.makedirs(os.path.dirname(PROMPT_CONFIG_FILE), exist_ok=True)
+        os.makedirs(os.path.dirname(prompt_config_file), exist_ok=True)
         
         # Save the configuration to the file
-        with open(PROMPT_CONFIG_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
+        with open(prompt_config_file, 'w', encoding='utf-8') as f:
+            json.dump(existing_config, f, indent=4, ensure_ascii=False)
         
         return jsonify({"success": True})
     except Exception as e:
@@ -2021,7 +2503,7 @@ def update_prompt_config():
 
 @app.route('/api/admin/dashboard-stats', methods=['GET'])
 def get_dashboard_stats():
-    """Get statistics data for the admin dashboard"""
+    """Get statistics for the admin dashboard"""
     try:
         print("Starting to retrieve dashboard statistics...")
         result = {
@@ -2032,21 +2514,26 @@ def get_dashboard_stats():
             "last_7_days_submissions": [0, 0, 0, 0, 0, 0, 0]  # Initialize data for the last 7 days
         }
         
-        # 1. Calculate Total Papers: Number of directories under MAIN_DIR
+        # 1. Calculate Total Papers: Number of fully processed papers
         try:
-            if os.path.exists(MAIN_DIR):
-                result["total_papers"] = len([name for name in os.listdir(MAIN_DIR) if os.path.isdir(os.path.join(MAIN_DIR, name))])
+            main_dir = get_main_dir()
+            if os.path.exists(main_dir):
+                # 使用is_paper_fully_processed函数来过滤
+                result["total_papers"] = len([name for name in os.listdir(main_dir) 
+                                           if os.path.isdir(os.path.join(main_dir, name)) 
+                                           and is_paper_fully_processed(name)])
                 print(f"Total Papers calculation completed: {result['total_papers']}")
             else:
-                print(f"Warning: Main_dir path does not exist: {MAIN_DIR}")
+                print(f"Warning: Main_dir path does not exist: {main_dir}")
         except Exception as e:
             print(f"Error calculating Total Papers: {str(e)}")
         
         # 2. Calculate Papers Need Curation: Number of papers with User_dir and at least 2 folders under User_dir
         try:
-            if os.path.exists(MAIN_DIR):
-                for pmid in os.listdir(MAIN_DIR):
-                    pmid_path = os.path.join(MAIN_DIR, pmid)
+            main_dir = get_main_dir()
+            if os.path.exists(main_dir):
+                for pmid in os.listdir(main_dir):
+                    pmid_path = os.path.join(main_dir, pmid)
                     user_dir_path = os.path.join(pmid_path, 'User_dir')
                     if os.path.isdir(pmid_path) and os.path.exists(user_dir_path):
                         # Count the number of directories under User_dir
@@ -2228,7 +2715,8 @@ def get_user_completion_overview():
         """
         # 1. 获取所有用户
         users_data = []
-        with open(USERS_FILE, 'r', encoding='utf-8') as f:
+        users_file = get_users_file()
+        with open(users_file, 'r', encoding='utf-8') as f:
             users_data = json.load(f).get('users', [])
         
         # 2. 获取用户访问权限数据
@@ -2294,13 +2782,14 @@ def get_curation_papers():
         papers = []
         
         # Check if Main_dir exists
-        if not os.path.exists(MAIN_DIR):
-            print(f"Warning: Main_dir path does not exist: {MAIN_DIR}")
+        main_dir = get_main_dir()
+        if not os.path.exists(main_dir):
+            print(f"Warning: Main_dir path does not exist: {main_dir}")
             return jsonify({"papers": [], "message": "Main directory not found"})
         
         # Iterate through all paper folders under Main_dir
-        for pmid in os.listdir(MAIN_DIR):
-            pmid_path = os.path.join(MAIN_DIR, pmid)
+        for pmid in os.listdir(main_dir):
+            pmid_path = os.path.join(main_dir, pmid)
             user_dir_path = os.path.join(pmid_path, 'User_dir')
             
             # Check if it is a directory and has a User_dir subdirectory
@@ -2403,7 +2892,8 @@ def get_curation_data():
             return jsonify({"error": "Missing pmid parameter"}), 400
             
         # Construct the curation data file path
-        curation_data_path = os.path.join(MAIN_DIR, pmid, "curation_data.json")
+        main_dir = get_main_dir()
+        curation_data_path = os.path.join(main_dir, pmid, "curation_data.json")
         
         # Check if the file exists and is not empty
         file_exists = os.path.exists(curation_data_path)
@@ -2418,7 +2908,7 @@ def get_curation_data():
                 file_empty = True
         
         # Construct User_dir path
-        user_dir_path = os.path.join(MAIN_DIR, pmid, "User_dir")
+        user_dir_path = os.path.join(main_dir, pmid, "User_dir")
         if not os.path.exists(user_dir_path):
             return jsonify({
                 "same_relations": [],
@@ -2525,7 +3015,8 @@ def calculate_user_data_hash(pmid, username):
     """Calculate the combined hash value of user's last_modify_output.json and notes.json"""
     import hashlib
     
-    user_path = os.path.join(MAIN_DIR, pmid, "User_dir", username)
+    main_dir = get_main_dir()
+    user_path = os.path.join(main_dir, pmid, "User_dir", username)
     last_modify_path = os.path.join(user_path, "last_modify_output.json")
     notes_path = os.path.join(user_path, "notes.json")
     
@@ -2603,7 +3094,8 @@ def remove_user_from_relations(curation_data, target_user):
 # Helper function: Add user relations
 def add_user_relations(curation_data, pmid, username):
     """Add the latest relations of the user to the curation data"""
-    user_dir_path = os.path.join(MAIN_DIR, pmid, "User_dir", username)
+    main_dir = get_main_dir()
+    user_dir_path = os.path.join(main_dir, pmid, "User_dir", username)
     
     # Read last_modify_output.json
     last_modify_path = os.path.join(user_dir_path, "last_modify_output.json")
@@ -2790,7 +3282,7 @@ def generate_full_curation_data(pmid, users, total_users):
     
     # Iterate through each user's folder
     for user in users:
-        user_path = os.path.join(MAIN_DIR, pmid, "User_dir", user)
+        user_path = os.path.join(get_main_dir(), pmid, "User_dir", user)
         
         # Build last_modify_output.json path
         last_modify_path = os.path.join(user_path, "last_modify_output.json")
@@ -2921,7 +3413,7 @@ def save_curation_data():
             return jsonify({"error": "Invalid data structure"}), 400
             
         # Build curation data file path
-        curation_data_path = os.path.join(MAIN_DIR, pmid, "curation_data.json")
+        curation_data_path = os.path.join(get_main_dir(), pmid, "curation_data.json")
         
         # Ensure directory exists
         os.makedirs(os.path.dirname(curation_data_path), exist_ok=True)
@@ -3061,7 +3553,7 @@ def merge_curation_data():
         print(f"Received merge request, PMID: {pmid}")  # Add print statement
         
         # Build curation data file path
-        curation_data_path = os.path.join(MAIN_DIR, pmid, "curation_data.json")
+        curation_data_path = os.path.join(get_main_dir(), pmid, "curation_data.json")
         
         # Check if the file exists
         if not os.path.exists(curation_data_path):
@@ -3108,7 +3600,7 @@ def merge_curation_data():
                         paper_notes[relation_key] = relation['note']
         
         # Build original_data folder path
-        original_data_dir = os.path.join(MAIN_DIR, pmid, "original_data")
+        original_data_dir = os.path.join(get_main_dir(), pmid, "original_data")
         
         # 1. Backup and update relations field in original_output.json
         original_output_path = os.path.join(original_data_dir, "original_output.json")
@@ -3195,8 +3687,8 @@ def merge_curation_data():
             return jsonify({"error": "data.json not found"}), 404
         
         # 4. Backup User_dir folder and then delete it
-        user_dir_path = os.path.join(MAIN_DIR, pmid, "User_dir")
-        old_user_dir_path = os.path.join(MAIN_DIR, pmid, "old_User_dir")
+        user_dir_path = os.path.join(get_main_dir(), pmid, "User_dir")
+        old_user_dir_path = os.path.join(get_main_dir(), pmid, "old_User_dir")
         
         if os.path.exists(user_dir_path):
             # Remove old backup if exists
@@ -3233,10 +3725,10 @@ def get_curated_papers():
         statistics = load_statistics()
         
         # Iterate through all paper folders under Main_dir
-        for pmid in os.listdir(MAIN_DIR):
+        for pmid in os.listdir(get_main_dir()):
             # Check if the paper has completed curation
             if pmid in statistics and 'curation_merge_time' in statistics[pmid]:
-                paper_path = os.path.join(MAIN_DIR, pmid)
+                paper_path = os.path.join(get_main_dir(), pmid)
                 
                 # Read paper data
                 data_file = os.path.join(paper_path, 'original_data', 'data.json')
@@ -3266,14 +3758,8 @@ def get_curated_papers():
 
 # Add new helper functions
 def get_user_access_file_path():
-    # 使用相对于应用根目录的路径
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    data_dir = os.path.join(base_dir, 'data')
-    
-    # 确保数据目录存在
-    os.makedirs(data_dir, exist_ok=True)
-    
-    return os.path.join(data_dir, 'user_access.json')
+    """获取当前项目的用户访问控制文件路径"""
+    return os.path.join(get_project_dir(), 'user_access.json')
 
 def ensure_user_access_file():
     file_path = get_user_access_file_path()
@@ -3346,7 +3832,7 @@ def reset_curation():
         print(f"Received reset curation request, PMID: {pmid}")
         
         # 1. 处理original_data文件夹中的文件
-        original_data_dir = os.path.join(MAIN_DIR, pmid, "original_data")
+        original_data_dir = os.path.join(get_main_dir(), pmid, "original_data")
         
         # 检查文件夹是否存在
         if not os.path.exists(original_data_dir):
@@ -3419,8 +3905,8 @@ def reset_curation():
             print(f"Error updating statistic.json: {str(e)}")
         
         # 3. 处理User_dir文件夹
-        user_dir_path = os.path.join(MAIN_DIR, pmid, "User_dir")
-        old_user_dir_path = os.path.join(MAIN_DIR, pmid, "old_User_dir")
+        user_dir_path = os.path.join(get_main_dir(), pmid, "User_dir")
+        old_user_dir_path = os.path.join(get_main_dir(), pmid, "old_User_dir")
         
         if os.path.exists(old_user_dir_path):
             # 删除当前的User_dir文件夹（如果存在）
@@ -3449,19 +3935,18 @@ def reset_curation():
 def get_nodes_data():
     """获取当前知识库中的节点数据"""
     try:
-        # 使用绝对路径从数据文件中读取数据
-        file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'nodes_relations_database.json')
+        # 使用会话级别的知识库文件路径
+        file_path = get_knowledge_base_file()
         print(f"Attempting to read nodes data from: {file_path}")
         
         if not os.path.exists(file_path):
             print(f"Warning: Knowledge base file not found at {file_path}")
-            # 尝试使用用户提供的绝对路径
-            file_path = '/home/ec2-user/work/temp_fix_folder/data/nodes_relations_database.json'
-            print(f"Trying alternative path: {file_path}")
-            
-            if not os.path.exists(file_path):
-                print(f"Error: Knowledge base file also not found at alternative path")
-                return jsonify({"error": "Knowledge base file not found"}), 404
+            # 创建空的知识库文件
+            ensure_directory_exists(os.path.dirname(file_path))
+            empty_data = {"nodes": [], "relations": []}
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(empty_data, f, indent=2)
+            return jsonify({"nodes": []})
         
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -3475,19 +3960,18 @@ def get_nodes_data():
 def get_relations_data():
     """获取当前知识库中的关系数据"""
     try:
-        # 使用绝对路径从数据文件中读取数据
-        file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'nodes_relations_database.json')
+        # 使用会话级别的知识库文件路径
+        file_path = get_knowledge_base_file()
         print(f"Attempting to read relations data from: {file_path}")
         
         if not os.path.exists(file_path):
             print(f"Warning: Knowledge base file not found at {file_path}")
-            # 尝试使用用户提供的绝对路径
-            file_path = '/home/ec2-user/work/temp_fix_folder/data/nodes_relations_database.json'
-            print(f"Trying alternative path: {file_path}")
-            
-            if not os.path.exists(file_path):
-                print(f"Error: Knowledge base file also not found at alternative path")
-                return jsonify({"error": "Knowledge base file not found"}), 404
+            # 创建空的知识库文件
+            ensure_directory_exists(os.path.dirname(file_path))
+            empty_data = {"nodes": [], "relations": []}
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(empty_data, f, indent=2)
+            return jsonify({"relations": []})
         
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -3516,18 +4000,9 @@ def upload_knowledge_base():
         if not file.filename.endswith('.json'):
             return jsonify({"error": "File must be a JSON file"}), 400
         
-        # 确定知识库文件路径
-        file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'nodes_relations_database.json')
-        
-        if not os.path.exists(os.path.dirname(file_path)):
-            print(f"Warning: Directory does not exist: {os.path.dirname(file_path)}")
-            # 尝试使用用户提供的绝对路径
-            file_path = '/home/ec2-user/work/temp_fix_folder/data/nodes_relations_database.json'
-            print(f"Using alternative path: {file_path}")
-            
-            if not os.path.exists(os.path.dirname(file_path)):
-                os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                print(f"Created directory: {os.path.dirname(file_path)}")
+        # 使用会话级别的知识库文件路径
+        file_path = get_knowledge_base_file()
+        ensure_directory_exists(os.path.dirname(file_path))
         
         # 读取上传的JSON文件内容
         try:
@@ -3613,14 +4088,12 @@ def reset_knowledge_base():
         if data_type not in ['node', 'relation']:
             return jsonify({"error": "Invalid type parameter. Must be 'node' or 'relation'"}), 400
         
-        # 确定知识库文件路径
-        file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'nodes_relations_database.json')
+        # 使用项目级别的知识库文件路径
+        file_path = get_knowledge_base_file()
+        print(f"Using knowledge base file: {file_path}")
         
-        if not os.path.exists(os.path.dirname(file_path)):
-            print(f"Warning: Directory does not exist: {os.path.dirname(file_path)}")
-            # 尝试使用用户提供的绝对路径
-            file_path = '/home/ec2-user/work/temp_fix_folder/data/nodes_relations_database.json'
-            print(f"Using alternative path: {file_path}")
+        # 确保目录存在
+        ensure_directory_exists(os.path.dirname(file_path))
             
         # 读取当前知识库数据
         current_data = {}
@@ -3628,8 +4101,8 @@ def reset_knowledge_base():
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     current_data = json.load(f)
-            except:
-                print(f"Could not read existing knowledge base file")
+            except Exception as e:
+                print(f"Could not read existing knowledge base file: {str(e)}")
                 current_data = {"nodes": [], "relations": []}
         else:
             current_data = {"nodes": [], "relations": []}
@@ -3669,18 +4142,17 @@ def export_knowledge_base():
         if data_type not in ['node', 'relation']:
             return jsonify({"error": "Invalid type parameter. Must be 'node' or 'relation'"}), 400
         
-        # 确定知识库文件路径
-        file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'nodes_relations_database.json')
-        
-        if not os.path.exists(os.path.dirname(file_path)):
-            print(f"Warning: Directory does not exist: {os.path.dirname(file_path)}")
-            # 尝试使用用户提供的绝对路径
-            file_path = '/home/ec2-user/work/temp_fix_folder/data/nodes_relations_database.json'
-            print(f"Using alternative path: {file_path}")
+        # 使用项目级别的知识库文件路径
+        file_path = get_knowledge_base_file()
+        print(f"Using knowledge base file: {file_path}")
             
-            if not os.path.exists(file_path):
-                print(f"Error: Knowledge base file not found")
-                return jsonify({"error": "Knowledge base file not found"}), 404
+        if not os.path.exists(file_path):
+            print(f"Error: Knowledge base file not found: {file_path}")
+            # 确保目录存在并创建空的知识库文件
+            ensure_directory_exists(os.path.dirname(file_path))
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump({"nodes": [], "relations": []}, f, indent=2)
+            print(f"Created empty knowledge base file: {file_path}")
         
         # 读取当前知识库数据
         try:
@@ -3718,6 +4190,664 @@ def export_knowledge_base():
     except Exception as e:
         print(f"Error exporting knowledge base: {str(e)}")
         return jsonify({"error": f"Failed to export knowledge base: {str(e)}"}), 500
+
+# Function to ensure projects.json exists - REMOVED (obsolete with filesystem approach)
+
+# Function to get the data directory for a specific project
+def get_project_data_dir(project_name):
+    """获取项目的数据目录路径"""
+    return os.path.join(ROOT_DIR, 'projects', project_name)
+
+# Function to create a new project directory structure
+def create_project_directory(project_name):
+    """创建项目目录结构"""
+    project_dir = get_project_data_dir(project_name)
+    
+    # Create main project directory
+    ensure_directory_exists(project_dir)
+    
+    # Create standard subdirectories
+    ensure_directory_exists(os.path.join(project_dir, 'Main_dir'))
+    ensure_directory_exists(os.path.join(project_dir, 'Temp_dir'))
+    
+    # Copy template files if they exist or create defaults
+    template_files_to_copy_or_create = {
+        'type_name_database.json': {
+            "type": ["General Information", "Disease", "Cell/Tissue-Specific"],
+            "name": ["Cancer", "Inflammation", "Cell-Type Specific"]
+        },
+        'prompt.json': {
+            "PROMPT_TEMPLATE": "Default prompt template",
+            "JSON_PROMPT_TEMPLATE": "Default JSON prompt template"
+        }
+    }
+    
+    default_project_dir = os.path.join(ROOT_DIR, 'projects', 'default')
+
+    # 优先复制整个文件，而不是使用默认值
+    for file_name, default_content in template_files_to_copy_or_create.items():
+        src_file = os.path.join(default_project_dir, file_name)
+        dst_file = os.path.join(project_dir, file_name)
+        
+        # 如果文件存在默认项目中，优先尝试完整复制
+        if os.path.exists(src_file):
+            try:
+                shutil.copy2(src_file, dst_file)
+                print(f"Copied template file {file_name} to project {project_name} from default project.")
+                continue  # 成功复制后直接继续下一个文件
+            except Exception as e:
+                print(f"Failed to copy template file {file_name} from default: {str(e)}. Creating default.")
+                # 复制失败后才尝试创建默认内容
+        
+        # 对于prompt.json特殊处理，如果默认文件存在，尝试读取其内容
+        if file_name == 'prompt.json' and os.path.exists(src_file):
+            try:
+                with open(src_file, 'r', encoding='utf-8') as f:
+                    content = json.load(f)
+                    with open(dst_file, 'w', encoding='utf-8') as df:
+                        json.dump(content, df, indent=2, ensure_ascii=False)
+                    print(f"Created {file_name} with content from default project for {project_name}.")
+                    continue
+            except Exception as e:
+                print(f"Failed to read and create {file_name} from default content: {str(e)}. Using hardcoded default.")
+        
+        # 最后才使用硬编码的默认内容
+        with open(dst_file, 'w', encoding='utf-8') as f:
+            json.dump(default_content, f, indent=2, ensure_ascii=False)
+            print(f"Created {file_name} with default content for {project_name}.")
+
+    # Create empty statistic.json
+    with open(os.path.join(project_dir, 'statistic.json'), 'w', encoding='utf-8') as f:
+        json.dump({}, f, indent=2, ensure_ascii=False)
+    print(f"Created empty statistic.json for project {project_name}.")
+
+    # Create empty user_access.json
+    with open(os.path.join(project_dir, 'user_access.json'), 'w', encoding='utf-8') as f:
+        json.dump({}, f, indent=2, ensure_ascii=False)
+    print(f"Created empty user_access.json for project {project_name}.")
+
+    # Create empty nodes_relations_database.json (knowledge base)
+    knowledge_base_content = {"nodes": [], "relations": []}
+    with open(os.path.join(project_dir, 'nodes_relations_database.json'), 'w', encoding='utf-8') as f:
+        json.dump(knowledge_base_content, f, indent=2, ensure_ascii=False)
+    print(f"Created empty nodes_relations_database.json for project {project_name}.")
+    
+    return True
+
+# Add projects endpoints 
+@app.route('/api/projects', methods=['GET'])
+def get_projects():
+    """获取所有可用项目（扫描projects目录）"""
+    try:
+        # 确保projects目录存在
+        projects_dir = os.path.join(ROOT_DIR, 'projects')
+        ensure_directory_exists(projects_dir)
+        
+        # 获取projects目录下的所有子目录
+        projects = []
+        for item in os.listdir(projects_dir):
+            item_path = os.path.join(projects_dir, item)
+            if os.path.isdir(item_path):
+                projects.append(item)
+        
+        # 确保default项目总是存在
+        if 'default' not in projects:
+            # 创建default项目
+            create_project_directory('default')
+            projects.append('default')
+        
+        # 按字母顺序排序，但确保default项目在第一位
+        if 'default' in projects:
+            projects.remove('default')
+            projects.sort()
+            projects.insert(0, 'default')
+        else:
+            projects.sort()
+        
+        return jsonify({'projects': projects})
+    except Exception as e:
+        print(f"Error getting projects: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve projects', 'details': str(e)}), 500
+
+@app.route('/api/projects', methods=['POST'])
+def add_project():
+    """添加新项目（创建对应的目录）"""
+    try:
+        data = request.get_json()
+        project_name = data.get('name', '').strip()
+        
+        if not project_name:
+            return jsonify({'success': False, 'error': 'Project name is required'}), 400
+        
+        # 检查项目名是否包含非法字符
+        if any(c in r'\/:*?"<>|' for c in project_name):
+            return jsonify({'success': False, 'error': 'Project name contains invalid characters'}), 400
+        
+        # 检查项目是否已存在
+        project_dir = get_project_data_dir(project_name)
+        if os.path.exists(project_dir):
+            return jsonify({'success': False, 'error': 'Project already exists'}), 400
+        
+        # 创建项目目录
+        create_project_directory(project_name)
+        
+        return jsonify({'success': True, 'project_name': project_name})
+    except Exception as e:
+        print(f"Error adding project: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to add project', 'details': str(e)}), 500
+
+@app.route('/api/projects/set-current', methods=['POST'])
+def set_current_project():
+    """设置当前项目到会话"""
+    try:
+        data = request.get_json()
+        project_name = data.get('project_name', 'default').strip()
+        
+        # 验证项目是否存在
+        project_dir = get_project_data_dir(project_name)
+        if not os.path.exists(project_dir):
+            return jsonify({'success': False, 'error': 'Project not found'}), 404
+        
+        # 保存当前项目到会话
+        session['current_project_name'] = project_name
+        
+        # 确保项目目录结构完整
+        ensure_directory_exists(get_main_dir())
+        ensure_directory_exists(get_temp_dir())
+        
+        # 确保必要的文件存在
+        ensure_users_file()
+        
+        return jsonify({'success': True, 'project_name': project_name})
+    except Exception as e:
+        print(f"Error setting current project: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to set current project', 'details': str(e)}), 500
+
+# 添加获取临时提示词目录的函数
+def get_prompt_temp_dir():
+    project_name = get_current_project_name()
+    base_dir = get_project_data_dir(project_name)
+    prompt_temp_dir = os.path.join(base_dir, "Prompt_Temp")
+    ensure_directory_exists(prompt_temp_dir)
+    return prompt_temp_dir
+
+# 添加获取临时提示词文件路径的函数
+def get_temp_prompt_file():
+    prompt_temp_dir = get_prompt_temp_dir()
+    temp_prompt_file = os.path.join(prompt_temp_dir, "temp_prompt.json")
+    return temp_prompt_file
+
+# 获取当前提示词版本
+@app.route('/api/current-prompt-version', methods=['GET'])
+def get_current_prompt_version():
+    try:
+        # 检查 temp_prompt.json 是否存在
+        temp_prompt_file = get_temp_prompt_file()
+        if not os.path.exists(temp_prompt_file):
+            # 初始化文件
+            prompt_config = load_prompt_config()
+            default_data = {
+                "current_system_prompt_name": "Version_1",
+                "prompts": {"Version_1": prompt_config["PROMPT_TEMPLATE"]}
+            }
+            with open(temp_prompt_file, 'w', encoding='utf-8') as f:
+                json.dump(default_data, f, ensure_ascii=False, indent=2)
+            return jsonify({"version": "Version_1"})
+        
+        # 读取 temp_prompt.json
+        with open(temp_prompt_file, 'r', encoding='utf-8') as f:
+            temp_prompts = json.load(f)
+        
+        # 如果存在 current_system_prompt_name 字段，直接返回它
+        if "current_system_prompt_name" in temp_prompts:
+            return jsonify({"version": temp_prompts["current_system_prompt_name"]})
+        
+        # 如果没有 current_system_prompt_name 字段，说明是旧格式数据
+        # 获取当前系统提示词
+        system_prompt = load_prompt_config()["PROMPT_TEMPLATE"]
+        
+        # 在旧格式数据中查找匹配的提示词版本
+        for version, content in temp_prompts.items():
+            if content == system_prompt:
+                return jsonify({"version": version})
+        
+        # 如果没有找到匹配的版本，返回默认版本
+        return jsonify({"version": "Version_1"})
+    except Exception as e:
+        print(f"Error getting current prompt version: {str(e)}")
+        return jsonify({"version": "Version_1"})
+
+# 项目临时提示词API
+@app.route('/api/project-temp-prompts', methods=['GET'])
+def get_project_temp_prompts():
+    try:
+        temp_prompt_file = get_temp_prompt_file()
+        
+        # 如果文件不存在，初始化它
+        if not os.path.exists(temp_prompt_file):
+            prompt_config = load_prompt_config()
+            # 创建新结构的默认数据
+            temp_prompts = {
+                "current_system_prompt_name": "Version_1",
+                "prompts": {"Version_1": prompt_config["PROMPT_TEMPLATE"]}
+            }
+            with open(temp_prompt_file, 'w', encoding='utf-8') as f:
+                json.dump(temp_prompts, f, ensure_ascii=False, indent=2)
+            return jsonify(temp_prompts)
+        
+        # 如果文件存在，读取内容
+        with open(temp_prompt_file, 'r', encoding='utf-8') as f:
+            temp_prompts = json.load(f)
+            
+            # 确保数据有新结构的字段
+            if "current_system_prompt_name" not in temp_prompts:
+                # 获取系统 Prompt 作为 Version_1 的默认值
+                prompt_config = load_prompt_config()
+                # 将旧结构转换为新结构
+                prompts = temp_prompts.copy() if isinstance(temp_prompts, dict) else {"Version_1": prompt_config["PROMPT_TEMPLATE"]}
+                temp_prompts = {
+                    "current_system_prompt_name": "Version_1",
+                    "prompts": prompts
+                }
+                # 保存更新后的结构
+                with open(temp_prompt_file, 'w', encoding='utf-8') as f:
+                    json.dump(temp_prompts, f, ensure_ascii=False, indent=2)
+            
+            return jsonify(temp_prompts)
+    
+    except Exception as e:
+        print(f"Error loading project temp prompts: {str(e)}")
+        return jsonify({"error": "Failed to load temporary prompt templates"}), 500
+
+@app.route('/api/project-temp-prompts', methods=['POST'])
+def update_project_temp_prompts():
+    try:
+        # 获取请求数据
+        data = request.get_json()
+        if not isinstance(data, dict):
+            return jsonify({"error": "Invalid data format"}), 400
+        
+        # 验证数据结构
+        if "current_system_prompt_name" not in data or "prompts" not in data:
+            return jsonify({"error": "Invalid data structure. Missing required fields."}), 400
+        
+        # 获取临时提示词文件路径
+        temp_prompt_file = get_temp_prompt_file()
+        
+        # 保存到文件
+        with open(temp_prompt_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        
+        # 如果设置了当前系统提示词，也同时更新 prompt.json
+        current_prompt_name = data.get("current_system_prompt_name")
+        prompts = data.get("prompts", {})
+        
+        if current_prompt_name and current_prompt_name in prompts:
+            # 获取当前的系统提示词设置
+            prompt_config = load_prompt_config()
+            # 更新系统提示词
+            prompt_config["PROMPT_TEMPLATE"] = prompts[current_prompt_name]
+            # 保存到 prompt.json
+            prompt_config_file = get_prompt_config_file()
+            with open(prompt_config_file, 'w', encoding='utf-8') as f:
+                json.dump(prompt_config, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({"success": True, "message": "Temporary prompt templates updated successfully"})
+    
+    except Exception as e:
+        print(f"Error updating project temp prompts: {str(e)}")
+        return jsonify({"error": "Failed to update temporary prompt templates"}), 500
+
+# 在合适的位置添加新的API端点
+
+@app.route('/api/prompt-temp-papers', methods=['GET'])
+def get_prompt_temp_papers():
+    """
+    获取Prompt_Temp文件夹下的论文和对应的prompt版本
+    返回格式:
+    {
+        "papers": [
+            {
+                "pmid": "12345678",
+                "title": "Paper Title",
+                "prompt_versions": ["Version_1", "Version_2"]
+            },
+            ...
+        ]
+    }
+    """
+    try:
+        # 获取当前项目的Prompt_Temp目录
+        prompt_temp_dir = get_prompt_temp_dir()
+        
+        # 确保目录存在
+        if not os.path.exists(prompt_temp_dir):
+            os.makedirs(prompt_temp_dir, exist_ok=True)
+            return jsonify({"papers": []})
+        
+        papers = []
+        
+        # 遍历Prompt_Temp目录下的所有pmid目录
+        for pmid in os.listdir(prompt_temp_dir):
+            pmid_path = os.path.join(prompt_temp_dir, pmid)
+            
+            # 确保是目录且是有效的pmid格式
+            if not os.path.isdir(pmid_path) or not pmid.isdigit():
+                continue
+            
+            # 获取该pmid下的所有prompt版本目录
+            prompt_versions = []
+            for version in os.listdir(pmid_path):
+                version_path = os.path.join(pmid_path, version)
+                if os.path.isdir(version_path):
+                    prompt_versions.append(version)
+            
+            # 如果没有prompt版本，跳过
+            if not prompt_versions:
+                continue
+            
+            # 尝试获取论文标题
+            title = f"Paper {pmid}"  # 默认标题
+            try:
+                # 首先尝试从任意一个prompt版本目录下获取标题
+                found_title = False
+                for version in prompt_versions:
+                    version_data_path = os.path.join(pmid_path, version, 'data.json')
+                    if os.path.exists(version_data_path):
+                        with open(version_data_path, 'r', encoding='utf-8') as f:
+                            paper_data = json.load(f)
+                            if 'title' in paper_data and paper_data['title']:
+                                title = paper_data['title']
+                                found_title = True
+                                break
+                
+                # 如果没有在prompt版本目录中找到标题，尝试从主数据目录获取
+                if not found_title:
+                    main_data_path = os.path.join(get_main_data_path(pmid), 'original_data', 'data.json')
+                    if os.path.exists(main_data_path):
+                        with open(main_data_path, 'r', encoding='utf-8') as f:
+                            paper_data = json.load(f)
+                            if 'title' in paper_data and paper_data['title']:
+                                title = paper_data['title']
+            except Exception as e:
+                app.logger.error(f"Error getting title for paper {pmid}: {str(e)}")
+            
+            papers.append({
+                "pmid": pmid,
+                "title": title,
+                "prompt_versions": prompt_versions
+            })
+        
+        return jsonify({"papers": papers})
+    except Exception as e:
+        app.logger.error(f"Error getting prompt temp papers: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+    # 测试数据，保留为注释以供参考
+    """
+    return jsonify({
+        "papers": [
+            {
+                "pmid": "37293163",
+                "title": "Linc00662 m6A promotes the progression and metastasis of pancreatic cancer by activating focal adhesion kinase signaling pathway",
+                "prompt_versions": ["Version_1", "Version_2", "Custom_LLM", "GPT4", "Claude", "PaLM", "Gemini", "Mistral", "Llama3", "Falcon", "Mixtral", "StableLM", "Phi3"]  # 13个版本
+            },
+            {
+                "pmid": "37295326",
+                "title": "Site-specific Atg13 methylation-mediated autophagy regulates epithelial inflammation in PM2.5-induced nasal mucosa injury",
+                "prompt_versions": ["Version_1"]  # 1个版本
+            },
+            {
+                "pmid": "37311754",
+                "title": "Downregulation of N6-methyladenosine-modified LINC00641 promotes EMT, but provides a ferroptosis therapeutic opportunity in glioma",
+                "prompt_versions": ["Version_1", "Version_2", "GPT4", "Claude", "Llama3", "Gemini", "Mistral", "PaLM"]  # 正好8个版本
+            },
+            {
+                "pmid": "37432876",
+                "title": "SNORD90 induces glutamatergic signaling following treatment with monoaminergic antidepressants",
+                "prompt_versions": ["Version_1", "Version_2", "Mistral", "Gemini"]  # 4个版本
+            },
+            {
+                "pmid": "37434495",
+                "title": "The m6 A modification of Il17a in CD4+ T cells promotes inflammation in psoriasis",
+                "prompt_versions": ["Version_1", "Version_2", "Custom_LLM", "GPT4", "Claude", "PaLM"]  # 6个版本
+            },
+            {
+                "pmid": "37659034",
+                "title": "Mitochondrial m6A reader YTHDF2 regulates mitochondrial translation initiation under stress conditions",
+                "prompt_versions": ["Version_1", "Version_2", "Custom_LLM", "ChatGPT", "Claude", "PaLM", "Gemini", "Mistral", "Llama3", "Falcon", "Mixtral", "StableLM", "Phi3", "Cohere", "Anthropic", "OpenAI", "Meta", "Google", "Inflection"]  # 19个版本
+            },
+            {
+                "pmid": "12242281",
+                "title": "A comprehensive analysis of protein-protein interactions in Saccharomyces cerevisiae",
+                "prompt_versions": ["Version_1", "ChatGPT", "GPT4"]  # 3个版本
+            }
+        ]
+    })
+    """
+
+@app.route('/api/set-current-prompt-version', methods=['POST'])
+def set_current_prompt_version():
+    """设置当前选中的prompt版本到session中"""
+    data = request.json
+    prompt_version = data.get('prompt_version')
+    
+    if prompt_version:
+        session['current_prompt_version'] = prompt_version
+        return jsonify({'success': True, 'message': f'Current prompt version set to {prompt_version}'})
+    else:
+        return jsonify({'success': False, 'message': 'No prompt version provided'}), 400
+
+@app.route('/api/clear-current-prompt-version', methods=['POST'])
+def clear_current_prompt_version():
+    """清除session中的prompt版本，用于完成prompt版本分析后切换到Main_dir模式"""
+    if 'current_prompt_version' in session:
+        session.pop('current_prompt_version')
+    return jsonify({'success': True, 'message': 'Current prompt version cleared from session'})
+
+@app.route('/api/users/update-projects', methods=['POST'])
+def update_user_projects():
+    try:
+        users_file = get_users_file()
+        data = request.get_json()
+        
+        if 'users' not in data:
+            return jsonify({'success': False, 'error': 'Missing users data'}), 400
+        
+        with open(users_file, 'r') as f:
+            users_data = json.load(f)
+            
+        # 更新用户的projects字段
+        for new_user in data['users']:
+            username = new_user['username']
+            for i, existing_user in enumerate(users_data['users']):
+                if existing_user['username'] == username:
+                    # 确保Admin始终有所有项目的访问权限
+                    if username == 'Admin':
+                        # 获取所有项目
+                        projects_response = get_projects()
+                        all_projects = json.loads(projects_response.get_data(as_text=True))['projects']
+                        users_data['users'][i]['projects'] = all_projects
+                    else:
+                        # 对于非Admin用户，使用提供的项目列表
+                        users_data['users'][i]['projects'] = new_user.get('projects', [])
+                    break
+                    
+        # 保存更新后的数据
+        with open(users_file, 'w') as f:
+            json.dump(users_data, f, indent=2)
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        app.logger.error(f"Error updating user projects: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/grant-all-access', methods=['POST'])
+def grant_all_access():
+    """Grant access to all papers for all users"""
+    try:
+        # 1. Get all users except Admin
+        users_file = get_users_file()
+        with open(users_file, 'r', encoding='utf-8') as f:
+            users_data = json.load(f).get('users', [])
+            
+        # Filter out Admin user
+        users = [user['username'] for user in users_data if user['username'] != 'Admin']
+        
+        if not users:
+            return jsonify({"success": False, "message": "No users found to grant access"}), 404
+            
+        # 2. Get all papers that are fully processed
+        main_dir = get_main_dir()
+        papers = []
+        
+        for pmid in os.listdir(main_dir):
+            if os.path.isdir(os.path.join(main_dir, pmid)) and is_paper_fully_processed(pmid):
+                papers.append(pmid)
+                
+        if not papers:
+            return jsonify({"success": False, "message": "No papers found to grant access"}), 404
+            
+        # 3. Load current access data
+        access_data = load_user_access()
+        
+        # 4. Grant access for each paper to each user
+        papers_updated = 0
+        for pmid in papers:
+            if pmid not in access_data:
+                access_data[pmid] = {"access_users": []}
+                
+            # Add all users if they don't already have access
+            current_users = set(access_data[pmid].get("access_users", []))
+            for user in users:
+                if user not in current_users:
+                    access_data[pmid]["access_users"].append(user)
+                    papers_updated += 1
+        
+        # 5. Save the updated access data
+        save_user_access(access_data)
+        
+        return jsonify({
+            "success": True, 
+            "message": f"Access granted for {len(users)} users to {len(papers)} papers",
+            "papers_updated": papers_updated
+        })
+        
+    except Exception as e:
+        print(f"Error granting all access: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/auto-continue-crawling', methods=['POST'])
+def auto_continue_crawling():
+    """
+    Automatically check all papers in the current project and continue crawling those
+    that are incomplete (missing data.json or original_output.json)
+    """
+    try:
+        data = request.json
+        username = data.get('username')
+        prompt_version = data.get('promptVersion')
+        test_mode = data.get('testMode', False)  # 新增：测试模式参数
+        
+        print(f"[AUTO-CRAWL] Starting auto-continue-crawling in {'TEST mode' if test_mode else 'NORMAL mode'}")
+        
+        if not username:
+            return jsonify({"error": "Username is required"}), 400
+        
+        # 获取当前项目名称并保存 - 关键修复
+        current_project = get_current_project_name()
+        print(f"[AUTO-CRAWL] Current project: {current_project}")
+        
+        # Get the main directory for the current project
+        main_dir = get_main_dir()
+        print(f"[AUTO-CRAWL] Main directory: {main_dir}")
+        
+        # 验证目录是否存在
+        if not os.path.exists(main_dir):
+            print(f"[AUTO-CRAWL] ERROR: Main directory does not exist: {main_dir}")
+            return jsonify({"error": f"Project directory does not exist: {main_dir}"}), 500
+        
+        # List all subdirectories (PMIDs)
+        pmid_dirs = []
+        try:
+            pmid_dirs = [d for d in os.listdir(main_dir) if os.path.isdir(os.path.join(main_dir, d))]
+            print(f"[AUTO-CRAWL] Found {len(pmid_dirs)} PMID directories")
+        except Exception as e:
+            print(f"[AUTO-CRAWL] ERROR: Failed to list main directory: {main_dir}, error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": f"Failed to read main directory: {str(e)}"}), 500
+        
+        # Check each PMID directory for incomplete papers
+        incomplete_papers = []
+        for pmid in pmid_dirs:
+            # 输出检查信息
+            data_path = get_paper_data_path(pmid, prompt_version)
+            output_path = get_paper_output_path(pmid, prompt_version)
+            data_exists = os.path.exists(data_path)
+            output_exists = os.path.exists(output_path)
+            
+            print(f"[AUTO-CRAWL] Checking PMID {pmid}:")
+            print(f"[AUTO-CRAWL]   - data.json path: {data_path}, exists: {data_exists}")
+            print(f"[AUTO-CRAWL]   - output.json path: {output_path}, exists: {output_exists}")
+            
+            # Use the existing function to check if paper is fully processed
+            if not is_paper_fully_processed(pmid, prompt_version):
+                # Construct PubMed URL for this PMID
+                paper_url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+                incomplete_papers.append((paper_url, pmid))
+                print(f"[AUTO-CRAWL]   - Paper {pmid} is incomplete, adding to queue")
+                
+                # 测试模式下，只处理第一篇未完成的论文
+                if test_mode:
+                    print(f"[AUTO-CRAWL] TEST MODE: Found first incomplete paper {pmid}, stopping search")
+                    break
+        
+        if not incomplete_papers:
+            print(f"[AUTO-CRAWL] No incomplete papers found")
+            return jsonify({
+                "success": True,
+                "message": "No incomplete papers found",
+                "total": 0
+            })
+        
+        # 测试模式下，只处理第一篇论文，并在日志中标明
+        if test_mode and len(incomplete_papers) > 1:
+            first_paper = incomplete_papers[0]
+            incomplete_papers = [first_paper]
+            print(f"[AUTO-CRAWL] TEST MODE: Only processing first incomplete paper {first_paper[1]}")
+        
+        print(f"[AUTO-CRAWL] Found {len(incomplete_papers)} incomplete papers")
+        
+        # Add all URLs to the queue with project name
+        for url, pmid in incomplete_papers:
+            # 将当前项目名称添加到队列项中 - 关键修复
+            scraping_queue.put((url, username, prompt_version, current_project, pmid))
+            print(f"[AUTO-CRAWL] Added to queue: PMID {pmid}, project {current_project}")
+        
+        # Initialize progress tracking
+        process_queue()
+        
+        # Start processing the queue in a new thread
+        processing_thread = Thread(target=process_papers_async)
+        processing_thread.daemon = True
+        processing_thread.start()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Started processing {len(incomplete_papers)} incomplete papers{' (TEST MODE - processing only one paper)' if test_mode else ''}",
+            "total": len(incomplete_papers),
+            "processing": len(incomplete_papers),
+            "test_mode": test_mode
+        })
+        
+    except Exception as e:
+        print(f"[AUTO-CRAWL] ERROR in auto-continue-crawling: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 # Start the application
 if __name__ == '__main__':

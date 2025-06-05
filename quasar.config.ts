@@ -117,6 +117,26 @@ export default defineConfig((ctx) => {
           { server: false },
         ],
       ],
+
+      // 添加 Vite 配置扩展
+      extendViteConf (viteConf) {
+        // 配置文件监听排除规则
+        viteConf.server = viteConf.server || {};
+        viteConf.server.watch = {
+          ignored: [
+            '**/node_modules/**',
+            '**/venv/**',
+            '**/data_backup/**',
+            '**/data_backup_newest/**',
+            '**/data*/**',        // 排除所有 data 开头的文件夹
+            '**/__pycache__/**',
+            '**/*.pyc',
+            '**/.git/**',
+            '**/dist/**',
+            '**/build/**'
+          ]
+        };
+      },
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
@@ -125,6 +145,25 @@ export default defineConfig((ctx) => {
       // @ts-ignore
       port: frontendPort,
       open: true, // opens browser window automatically
+      
+      // 添加文件监听配置
+      watchOptions: {
+        ignored: [
+          '**/node_modules/**',
+          '**/venv/**',
+          '**/data_backup/**',
+          '**/data_backup_newest/**',
+          '**/data*/**',        // 排除所有 data 开头的文件夹
+          '**/__pycache__/**',
+          '**/*.pyc',
+          '**/.git/**'
+        ],
+        // 减少轮询频率
+        poll: 1000,
+        // 设置文件监听的聚合延迟
+        aggregateTimeout: 300
+      },
+
       proxy: {
         // Add proxy configuration for API requests
         '/api': {

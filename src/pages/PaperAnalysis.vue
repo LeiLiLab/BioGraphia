@@ -755,6 +755,8 @@ fetchData() 从后端获取数据 * 2. 数据保存在 paperData 响应式变量
         :supporting-text="selectedAbstractText"
         @cancel="showAddRelationForm = false"
         @submit="handleAddRelationFromSelection"
+        :master-nodes="masterNodesOptions"
+        :master-relations="masterRelationsOptions"
       />
     </q-dialog>
   </q-page>
@@ -768,8 +770,6 @@ import CommentSection from 'src/components/CommentSection.vue'
 import GraphVisualizer from 'src/components/GraphVisualizer.vue'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
-import typeOptions from '../../data/type_name_database.json'
-import nodesRelationsData from '../../data/nodes_relations_database.json'
 import { BACKEND_URL } from '../config/api'
 import TextSelectionPrompt from '../components/TextSelectionPrompt.vue'
 import AddRelationForm from '../components/AddRelationForm.vue'
@@ -899,6 +899,12 @@ export default defineComponent({
     // 添加一个标志，用于区分点击来源（左侧文本还是右侧行）
     const isTextHighlighting = ref(false)
 
+    // Master lists for select options
+    const masterTypeOptions = ref<string[]>([])
+    const masterNameOptions = ref<string[]>([])
+    const masterNodesOptions = ref<string[]>([])
+    const masterRelationsOptions = ref<string[]>([])
+
     // Add ref for abstract container
     const abstractText = ref<HTMLElement | null>(null)
 
@@ -938,6 +944,38 @@ export default defineComponent({
     // 添加控制底部Graph区域显示的变量，默认隐藏
     const showBottomGraph = ref(false)
 
+    const fetchConfigData = async () => {
+      try {
+        const typeNameResponse = await axios.get(`${BACKEND_URL}/api/type-name-config`);
+        if (typeNameResponse.data) {
+          masterTypeOptions.value = typeNameResponse.data.type || [];
+          masterNameOptions.value = typeNameResponse.data.name || [];
+          typeOptionsList.value = [...masterTypeOptions.value];
+          nameOptionsList.value = [...masterNameOptions.value];
+        }
+
+        const nodesResponse = await axios.get(`${BACKEND_URL}/api/knowledge-base/nodes`);
+        if (nodesResponse.data) {
+          masterNodesOptions.value = nodesResponse.data.nodes || [];
+          nodesOptionsList.value = [...masterNodesOptions.value];
+        }
+
+        const relationsResponse = await axios.get(`${BACKEND_URL}/api/knowledge-base/relations`);
+        if (relationsResponse.data) {
+          masterRelationsOptions.value = relationsResponse.data.relations || [];
+          relationsOptionsList.value = [...masterRelationsOptions.value];
+        }
+      } catch (error) {
+        console.error('Error fetching config data:', error);
+        $q.notify({
+          type: 'negative',
+          message: 'Error fetching configuration data from server.',
+          position: 'top',
+        });
+      }
+    };
+    
+
     // Watch for changes that might affect height
     watch([paperData, tableData, isLoading], () => {
       syncContainerHeights()
@@ -953,7 +991,7 @@ export default defineComponent({
     })
 
     // 初始化会话 ID
-    onMounted(() => {
+    onMounted(async () => {
       // 添加点击事件监听器
       document.addEventListener('click', handlePageClick)
       window.addEventListener('resize', syncContainerHeights)
@@ -971,6 +1009,21 @@ export default defineComponent({
       nextTick(() => {
         updateAbstractBounds()
       })
+
+      // Add listener for graph data updates
+      window.addEventListener('graph-data-updated', handleGraphDataUpdated as unknown as EventListener);
+
+      // Fetch configuration data
+      await fetchConfigData();
+      
+      // 加载初始数据
+      isLoading.value = true
+      try {
+        await fetchData()
+        await loadNotes()
+      } finally {
+        isLoading.value = false
+      }
     })
 
     // 在组件卸载时移除事件监听器
@@ -989,6 +1042,9 @@ export default defineComponent({
       
       // 移除窗口大小变化监听
       window.removeEventListener('resize', updateAbstractBounds)
+
+      // Remove listener for graph data updates
+      window.removeEventListener('graph-data-updated', handleGraphDataUpdated as unknown as EventListener);
     })
     
     // 处理键盘快捷键
@@ -1754,6 +1810,9 @@ export default defineComponent({
     // 提交编辑后的数据
     const submitEdits = async () => {
       try {
+        // 检查是否是从prompt版本页面进入的
+        const promptVersion = route.query.promptVersion || sessionStorage.getItem('current_prompt_version')
+        
         // 计算编辑用时（毫秒）
         const editDuration = Date.now() - editStartTime.value
         
@@ -1815,6 +1874,16 @@ export default defineComponent({
           editDuration: editDuration // 添加编辑用时（毫秒）
         }
         
+        // 如果是从prompt版本页面进入的，提示用户数据不会被保存
+        if (promptVersion) {
+          $q.notify({
+            type: 'info',
+            message: `Viewing prompt version: ${promptVersion}. Changes will not be saved to Main_dir.`,
+            position: 'top',
+            timeout: 3000,
+          })
+        }
+        
         const response = await axios.post(`${BACKEND_URL}/api/update-analysis`, dataToSubmit)
         
         console.log('Server response:', response.data)
@@ -1835,7 +1904,7 @@ export default defineComponent({
         // 显示成功通知
         $q.notify({
           type: 'positive',
-          message: 'Changes saved successfully',
+          message: promptVersion ? 'Changes processed but not saved (prompt version mode)' : 'Changes saved successfully',
           position: 'top',
           timeout: 2000,
         })
@@ -2396,23 +2465,23 @@ export default defineComponent({
     const contextTypeEdit = ref('')
     const contextNameEdit = ref('')
     // 添加type选项列表
-    const typeOptionsList = ref<string[]>(typeOptions.type)
+    const typeOptionsList = ref<string[]>([])
     // 添加name选项列表
-    const nameOptionsList = ref<string[]>(typeOptions.name)
+    const nameOptionsList = ref<string[]>([])
 
     // 添加过滤type选项的方法
     const filterTypeOptions = (val: string, update: (callback: () => void) => void) => {
       if (val === '') {
         update(() => {
-          typeOptionsList.value = typeOptions.type
+          typeOptionsList.value = [...masterTypeOptions.value]
         })
         return
       }
 
       update(() => {
         const needle = val.toLowerCase()
-        typeOptionsList.value = typeOptions.type.filter(
-          v => v.toLowerCase().indexOf(needle) > -1
+        typeOptionsList.value = masterTypeOptions.value.filter(
+          (v: string) => v.toLowerCase().indexOf(needle) > -1
         )
       })
     }
@@ -2435,15 +2504,15 @@ export default defineComponent({
     const filterNameOptions = (val: string, update: (callback: () => void) => void) => {
       if (val === '') {
         update(() => {
-          nameOptionsList.value = typeOptions.name
+          nameOptionsList.value = [...masterNameOptions.value]
         })
         return
       }
 
       update(() => {
         const needle = val.toLowerCase()
-        nameOptionsList.value = typeOptions.name.filter(
-          v => v.toLowerCase().indexOf(needle) > -1
+        nameOptionsList.value = masterNameOptions.value.filter(
+          (v: string) => v.toLowerCase().indexOf(needle) > -1
         )
       })
     }
@@ -2520,13 +2589,36 @@ export default defineComponent({
 
     // 添加返回按钮相关的计算属性
     const backButtonTooltip = computed(() => {
-      return currentUser.value.username === 'Admin' ? 
-        'Back To Curated Papers Page' : 
-        'Back To Management Page'
+      // 从 session storage 获取上一个页面路径（如果存在）
+      const previousPath = sessionStorage.getItem('previousPath')
+      
+      if (previousPath && previousPath.includes('/project-prompt')) {
+        return 'Back to Prompt Management Page'
+      } else if (currentUser.value.username === 'Admin') {
+        return 'Back to Curated Papers Page'
+      } else {
+        return 'Back to Management Page'
+      }
     })
 
     const handleBackClick = () => {
-      if (currentUser.value.username === 'Admin') {
+      // 清除session中的current_prompt_version
+      axios.post(`${BACKEND_URL}/api/clear-current-prompt-version`)
+        .then(() => {
+          console.log('Successfully cleared prompt version from session');
+        })
+        .catch(error => {
+          console.error('Failed to clear prompt version from session:', error);
+        });
+
+      // 从 session storage 获取上一个页面路径（如果存在）
+      const previousPath = sessionStorage.getItem('previousPath')
+      
+      if (previousPath && previousPath.includes('/project-prompt')) {
+        // 如果是从project-prompt页面来的，返回到那里
+        router.push('/project-prompt')
+      } else if (currentUser.value.username === 'Admin') {
+        // 否则使用默认逻辑
         router.push('/curated-papers')
       } else {
         router.push('/management')
@@ -2549,22 +2641,22 @@ export default defineComponent({
     }
 
     // 在setup函数中添加新的数据变量
-    const nodesOptionsList = ref<string[]>(nodesRelationsData.nodes)
-    const relationsOptionsList = ref<string[]>(nodesRelationsData.relations)
+    const nodesOptionsList = ref<string[]>([])
+    const relationsOptionsList = ref<string[]>([])
 
     // 添加节点过滤方法
     const filterNodesOptions = (val: string, update: (callback: () => void) => void) => {
       if (val === '') {
         update(() => {
-          nodesOptionsList.value = nodesRelationsData.nodes
+          nodesOptionsList.value = [...masterNodesOptions.value]
         })
         return
       }
 
       update(() => {
         const needle = val.toLowerCase()
-        nodesOptionsList.value = nodesRelationsData.nodes.filter(
-          v => (v as string).toLowerCase().indexOf(needle) > -1
+        nodesOptionsList.value = masterNodesOptions.value.filter(
+          (v: string) => v.toLowerCase().indexOf(needle) > -1
         )
       })
     }
@@ -2573,15 +2665,15 @@ export default defineComponent({
     const filterRelationsOptions = (val: string, update: (callback: () => void) => void) => {
       if (val === '') {
         update(() => {
-          relationsOptionsList.value = nodesRelationsData.relations
+          relationsOptionsList.value = [...masterRelationsOptions.value]
         })
         return
       }
 
       update(() => {
         const needle = val.toLowerCase()
-        relationsOptionsList.value = nodesRelationsData.relations.filter(
-          v => (v as string).toLowerCase().indexOf(needle) > -1
+        relationsOptionsList.value = masterRelationsOptions.value.filter(
+          (v: string) => v.toLowerCase().indexOf(needle) > -1
         )
       })
     }
@@ -3229,7 +3321,9 @@ export default defineComponent({
       
       // 添加处理左侧高亮文本点击的方法
       handleHighlightedTextClick,
-      isTextHighlighting // 添加到返回值中
+      isTextHighlighting, // 添加到返回值中
+      masterNodesOptions, // <-- 添加这一行
+      masterRelationsOptions // <-- 添加这一行
     }
   },
 })

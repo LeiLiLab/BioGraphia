@@ -111,7 +111,7 @@ interface User {
 }
 
 export default defineComponent({
-  name: 'WelcomePage',
+  name: 'LoginPage',
 
   setup() {
     const router = useRouter()
@@ -198,6 +198,14 @@ export default defineComponent({
 
     // 在组件挂载时立即加载用户列表
     onMounted(async () => {
+      // Check if project is selected
+      const currentProject = localStorage.getItem('currentProject')
+      if (!currentProject) {
+        // Redirect to project selection if no project is selected
+        router.push('/')
+        return
+      }
+      
       await loadUsers()
     })
 

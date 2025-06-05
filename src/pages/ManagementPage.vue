@@ -1,7 +1,22 @@
 <template>
   <q-page class="q-pa-md">
-    <div class="text-h4 q-mb-lg text-center">HOME</div>
-
+    <!-- 标题栏 -->
+    <div class="header-row q-mb-lg">
+      <q-btn 
+        color="primary" 
+        label="Back to Project Selection" 
+        @click="goToProjectSelection"
+        flat
+        class="back-btn"
+        icon="arrow_back"
+        icon-left
+      />
+      <div class="text-h4 text-center flex-grow">HOME</div>
+      <div class="invisible-spacer">
+        <!-- 占位元素，保持标题居中 -->
+      </div>
+    </div>
+    
     <!-- Papers table -->
     <div class="table-wrapper">
       <q-table
@@ -103,52 +118,6 @@
       </div>
     </div>
 
-    <!-- Paper input section -->
-    <div class="text-h5 q-mb-md text-center">Add Papers</div>
-    <div class="row q-mb-xl items-center justify-center">
-      <div class="col-grow" style="max-width: 800px; display: flex; gap: 16px; align-items: center">
-        <q-input
-          v-model="newPaperUrl"
-          outlined
-          class="col-grow url-input"
-          label="Enter PubMed URL"
-          @keyup.enter="handleSubmit"
-          :loading="submitting"
-        >
-          <template v-slot:append>
-            <q-btn color="primary" label="Add" :loading="submitting" @click="handleSubmit">
-              <template v-slot:loading>
-                <q-spinner-dots />
-              </template>
-            </q-btn>
-          </template>
-        </q-input>
-        <q-btn
-          color="primary"
-          :loading="batchSubmitting"
-          @click="triggerFileInput"
-          class="batch-scrape-btn"
-        >
-          <q-icon name="upload_file" class="q-mr-xs" size="20px" />
-          Batch Upload
-          <template v-slot:loading>
-            <q-spinner-dots />
-          </template>
-          <q-tooltip class="tooltip-text">
-            Please upload a .txt file with one PubMed URL per line
-          </q-tooltip>
-        </q-btn>
-      </div>
-      <!-- Hidden file input -->
-      <input
-        type="file"
-        ref="fileInput"
-        accept=".txt"
-        style="display: none"
-        @change="handleFileSelected"
-      />
-    </div>
-
     <!-- Scraping progress section -->
     <div v-if="showProgress" class="text-h6 q-mb-md text-center">
       <div class="row items-center justify-center">
@@ -161,9 +130,10 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, onUnmounted, computed } from 'vue'
-import axios, { AxiosError } from 'axios'
+import axios from 'axios'
 import type { QTableColumn } from 'quasar'
 import { useQuasar } from 'quasar'
+import { useRouter } from 'vue-router'
 import { BACKEND_URL } from '../config/api'
 
 interface Paper {
@@ -174,31 +144,25 @@ interface Paper {
   extraction_time?: string
 }
 
-interface ErrorResponse {
-  data: {
-    message: string
-  }
-}
-
 export default defineComponent({
   name: 'ManagementPage',
 
   setup() {
     const $q = useQuasar()
+    const router = useRouter()
     const papers = ref<Paper[]>([])
     const loading = ref(true)
-    const newPaperUrl = ref('')
-    const submitting = ref(false)
-    const uploadFile = ref<File | null>(null)
-    const batchSubmitting = ref(false)
     const showProgress = ref(false)
     const currentPosition = ref(0)
     const totalPapers = ref(0)
     let statusCheckInterval: number | null = null
-    const fileInput = ref<HTMLInputElement | null>(null)
     const showCheckboxes = ref(false)
     const selectedPapers = ref<string[]>([])
     const isAllSelected = ref(false)
+
+    const goToProjectSelection = () => {
+      router.push('/project-select')
+    }
 
     const formatTitle = (val: string) => {
       return val.length > 94 ? val.substring(0, 94) + '...' : val
@@ -283,172 +247,61 @@ export default defineComponent({
       }
     }
 
-    const handleSubmit = async () => {
-      if (!newPaperUrl.value) {
-        $q.notify({
-          type: 'negative',
-          message: 'Please enter a URL',
-          position: 'top',
-          html: true,
-          classes: 'notification-message',
-          timeout: 3000,
-        })
-        return
-      }
-
-      // 验证 URL 格式
-      const urlPattern = /^https:\/\/pubmed\.ncbi\.nlm\.nih\.gov\/\d+\/?$/
-      if (!urlPattern.test(newPaperUrl.value)) {
-        $q.notify({
-          type: 'negative',
-          message: 'Invalid URL format, please check and try again.',
-          position: 'top',
-          html: true,
-          classes: 'notification-message',
-          timeout: 3000,
-        })
-        return
-      }
-
-      submitting.value = true
-
-      try {
-        // 获取当前用户名
-        const currentUser = localStorage.getItem('currentUser')
-        let username = currentUser || 'Guest' // 确保username不为null
-        try {
-          const userObj = JSON.parse(currentUser || '{}')
-          if (userObj && userObj.username) {
-            username = userObj.username
-          }
-        } catch (error) {
-          console.log('Failed to parse user object, using original value:', error)
-        }
-        
-        console.log('Single paper upload using username:', username)
-
-        // 创建一个通知引用
-        const notifyRef = $q.notify({
-          type: 'ongoing',
-          message: 'Processing paper, please wait...',
-          position: 'top',
-          timeout: 0,
-          html: true,
-          classes: 'notification-message',
-          spinner: true,
-        })
-
-        try {
-          // 调用初始化 API，传入用户名
-          const initResponse = await axios.post(`${BACKEND_URL}/api/initialize-paper`, {
-            url: newPaperUrl.value,
-            username: username
-          })
-
-          // 确保处理中的通知被清除
-          notifyRef()
-
-          if (initResponse.data.success) {
-            // 清空输入框
-            newPaperUrl.value = ''
-
-            // 显示成功消息
-            $q.notify({
-              type: 'positive',
-              message: 'Paper scraped successfully',
-              position: 'top',
-              html: true,
-              classes: 'notification-message',
-              timeout: 3000,
-            })
-
-            // 重新加载论文列表
-            await loadPapers()
-          }
-        } catch (error) {
-          // 确保处理中的通知被清除
-          notifyRef()
-          throw error
-        }
-      } catch (error) {
-        console.error('Error initializing paper:', error)
-
-        // 检查是否是已存在的论文错误
-        if (error instanceof AxiosError && error.response?.status === 409) {
-          $q.notify({
-            type: 'warning',
-            message: 'Paper already scraped',
-            position: 'top',
-            html: true,
-            classes: 'notification-message',
-            color: 'warning',
-            timeout: 3000,
-          })
-          newPaperUrl.value = '' // 清空输入框
-        } else {
-          const errorMessage =
-            error instanceof AxiosError && error.response
-              ? (error.response as ErrorResponse).data.message
-              : 'Error initializing paper. Please try again.'
-
-          $q.notify({
-            type: 'negative',
-            message: errorMessage,
-            position: 'top',
-            html: true,
-            classes: 'notification-message',
-            timeout: 3000,
-          })
-        }
-      } finally {
-        submitting.value = false
-      }
-    }
-
+    // 添加爬取状态检查方法
     const checkScrapingStatus = async () => {
       try {
-        const response = await axios.get(`${BACKEND_URL}/api/scraping-status`)
-        const { total_papers, completed_papers, remaining_papers } = response.data
+        const response = await axios.get(`${BACKEND_URL}/api/scraping-status`);
+        const { total_papers, completed_papers, remaining_papers } = response.data;
 
         // 如果有总数大于0，说明有爬取任务在进行
         if (total_papers > 0) {
-          showProgress.value = true
-          totalPapers.value = total_papers
+          showProgress.value = true;
+          totalPapers.value = total_papers;
 
           // 更新当前进度
-          const completedCount = completed_papers.length
+          const completedCount = completed_papers.length;
           if (completedCount > currentPosition.value) {
             // 有新完成的论文
-            const newCompletedPapers = completed_papers.slice(currentPosition.value)
+            const newCompletedPapers = completed_papers.slice(currentPosition.value);
 
             // 更新进度（保持从0开始计数，但显示时会+1）
-            currentPosition.value = completedCount
+            currentPosition.value = completedCount;
 
             // 处理每个新完成的论文
             for (const paper of newCompletedPapers) {
               if (paper.status === 'success') {
                 // 成功时刷新论文列表
-                await loadPapers()
+                loadPapers();
+                
+                // 显示成功通知
+                $q.notify({
+                  type: 'positive',
+                  message: `Paper ${paper.pmid} processed successfully`,
+                  position: 'top',
+                  html: true,
+                  classes: 'notification-message',
+                  timeout: 3000,
+                });
               } else if (paper.status === 'error' || paper.status === 'failed') {
                 // 显示错误通知
                 $q.notify({
                   type: 'negative',
                   message: `Failed to process paper ${paper.pmid}: ${paper.error || 'Unknown error'}`,
                   position: 'top',
-                  timeout: 3000,
                   html: true,
                   classes: 'notification-message',
-                })
+                  timeout: 3000,
+                });
               }
             }
           }
 
           // 如果所有论文都处理完毕
           if (remaining_papers === 0) {
-            showProgress.value = false
+            showProgress.value = false;
             if (statusCheckInterval !== null) {
-              clearInterval(statusCheckInterval)
-              statusCheckInterval = null
+              clearInterval(statusCheckInterval);
+              statusCheckInterval = null;
             }
 
             // 显示完成通知
@@ -456,130 +309,32 @@ export default defineComponent({
               type: 'positive',
               message: `Completed processing all papers`,
               position: 'top',
-              timeout: 3000,
               html: true,
               classes: 'notification-message',
-            })
+              timeout: 3000,
+            });
 
-            // 最后再刷新一次确保显示所有完成的论文
-            await loadPapers()
+            // 最后再刷新一次论文列表
+            loadPapers();
           }
         } else {
-          // 如果没有正在处理的论文，重置状态
-          showProgress.value = false
-          currentPosition.value = 0
-          totalPapers.value = 0
-          if (statusCheckInterval !== null) {
-            clearInterval(statusCheckInterval)
-            statusCheckInterval = null
+          // 如果没有正在处理的论文，但正在显示进度条，则隐藏它
+          if (showProgress.value) {
+            showProgress.value = false;
+            currentPosition.value = 0;
+            totalPapers.value = 0;
+            
+            // 清除定时器
+            if (statusCheckInterval !== null) {
+              clearInterval(statusCheckInterval);
+              statusCheckInterval = null;
+            }
           }
         }
-      } catch (error) {
-        console.error('Error checking scraping status:', error)
+      } catch (error: unknown) {
+        console.error('Error checking scraping status:', error);
       }
-    }
-
-    const handleBatchUpload = async () => {
-      if (!uploadFile.value) {
-        $q.notify({
-          type: 'negative',
-          message: 'Please select a file',
-          position: 'top',
-          html: true,
-          classes: 'notification-message',
-          timeout: 3000,
-        })
-        return
-      }
-
-      batchSubmitting.value = true
-      const formData = new FormData()
-      formData.append('file', uploadFile.value)
-      
-      // 获取并添加当前用户名
-      const currentUser = localStorage.getItem('currentUser')
-      let username = currentUser || 'Guest' // 确保username不为null
-      try {
-        const userObj = JSON.parse(currentUser || '{}')
-        if (userObj && userObj.username) {
-          username = userObj.username
-        }
-      } catch (error) {
-        console.log('Failed to parse user object, using original value:', error)
-      }
-      
-      console.log('Batch upload using username:', username)
-      
-      // 将用户名添加到表单数据
-      formData.append('username', username)
-
-      try {
-        const response = await axios.post(`${BACKEND_URL}/api/batch-initialize`, formData)
-
-        if (response.data.success) {
-          $q.notify({
-            type: 'positive',
-            message: response.data.message,
-            position: 'top',
-            html: true,
-            classes: 'notification-message',
-            timeout: 3000,
-          })
-
-          // 开始检查进度
-          showProgress.value = true
-          totalPapers.value = response.data.total
-          currentPosition.value = 0
-
-          // 清除可能存在的旧计时器
-          if (statusCheckInterval !== null) {
-            clearInterval(statusCheckInterval)
-            statusCheckInterval = null
-          }
-
-          // 启动新的状态检查，改为每2.5秒检查一次
-          if (statusCheckInterval === null) {
-            statusCheckInterval = setInterval(checkScrapingStatus, 2500) as unknown as number
-          }
-        }
-      } catch (error) {
-        console.error('Error uploading file:', error)
-        const errorMessage =
-          error instanceof AxiosError && error.response
-            ? (error.response as ErrorResponse).data.message || error.response.data.error
-            : 'Error uploading file. Please try again.'
-
-        $q.notify({
-          type: 'negative',
-          message: errorMessage,
-          position: 'top',
-          html: true,
-          classes: 'notification-message',
-          timeout: 3000,
-        })
-      } finally {
-        batchSubmitting.value = false
-        uploadFile.value = null
-      }
-    }
-
-    const triggerFileInput = () => {
-      fileInput.value?.click()
-    }
-
-    const handleFileSelected = async (event: Event) => {
-      const input = event.target as HTMLInputElement
-      if (!input.files?.length) return
-
-      const file = input.files[0]
-      if (file instanceof File) {
-        uploadFile.value = file
-        await handleBatchUpload()
-      }
-
-      // Reset file input
-      input.value = ''
-    }
+    };
 
     const handleDownClick = () => {
       // 切换显示勾选框状态
@@ -713,6 +468,15 @@ export default defineComponent({
 
     onMounted(() => {
       loadPapers()
+      
+      // 页面加载时启动状态检查并触发一次立即检查
+      if (statusCheckInterval !== null) {
+        clearInterval(statusCheckInterval)
+      }
+      statusCheckInterval = setInterval(checkScrapingStatus, 2500) as unknown as number
+      
+      // 立即检查一次状态，以便立即捕获已完成的爬取
+      checkScrapingStatus()
     })
 
     onUnmounted(() => {
@@ -727,18 +491,9 @@ export default defineComponent({
       columns,
       loading,
       formatTitle,
-      newPaperUrl,
-      submitting,
-      handleSubmit,
-      uploadFile,
-      batchSubmitting,
-      handleBatchUpload,
       showProgress,
       currentPosition,
       totalPapers,
-      fileInput,
-      triggerFileInput,
-      handleFileSelected,
       handleDownClick,
       showCheckboxes,
       selectedPapers,
@@ -748,6 +503,7 @@ export default defineComponent({
       cancelSelection,
       handleActionDown,
       isAllSelected,
+      goToProjectSelection,
     }
   },
 })
@@ -844,21 +600,6 @@ export default defineComponent({
   }
 }
 
-.url-input {
-  :deep(.q-field__label) {
-    font-size: 18px;
-  }
-  :deep(.q-field__native) {
-    font-size: 18px;
-  }
-  :deep(.q-field__marginal) {
-    font-size: 18px;
-  }
-  :deep(.q-field__control) {
-    height: 56px;
-  }
-}
-
 .q-mb-xl {
   margin-bottom: 48px;
 }
@@ -890,25 +631,6 @@ export default defineComponent({
   }
 }
 
-/* Update batch scrape button styles */
-.batch-scrape-btn {
-  height: 40px;
-  font-size: 14px;
-  padding: 0 12px;
-  min-height: unset;
-  align-self: center;
-}
-
-/* Update tooltip styles */
-:deep(.tooltip-text) {
-  font-size: 18px !important;
-}
-
-/* Remove old batch upload button styles */
-.batch-upload-btn {
-  display: none;
-}
-
 /* Add styles for action buttons */
 .action-buttons {
   position: absolute;
@@ -935,5 +657,28 @@ export default defineComponent({
   font-size: 16px;
   padding: 0 16px;
   height: 36px;
+}
+
+/* 返回按钮样式 */
+.back-btn {
+  font-size: 16px;
+  padding: 8px 16px;
+}
+
+/* 标题栏样式 */
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.flex-grow {
+  flex-grow: 1;
+}
+
+.invisible-spacer {
+  width: 205px; /* 与返回按钮宽度相同，保持标题居中 */
+  visibility: hidden;
 }
 </style>

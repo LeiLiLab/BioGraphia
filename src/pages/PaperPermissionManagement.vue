@@ -1,8 +1,8 @@
 <!-- Paper Permission Management Page -->
 <template>
   <q-page class="q-pa-md">
-    <!-- Back button -->
-    <div class="q-mb-md">
+    <!-- Back button and action buttons -->
+    <div class="q-mb-md row justify-between items-center">
       <q-btn 
         color="primary" 
         label="Back to dashboard" 
@@ -11,6 +11,16 @@
         class="back-btn"
         icon="arrow_back"
         icon-left
+      />
+      
+      <!-- Grant All Access Button -->
+      <q-btn
+        color="primary"
+        label="Grant All Users Access to All Papers"
+        icon="assignment_turned_in"
+        :loading="grantingAllAccess"
+        @click="confirmGrantAllAccess"
+        class="grant-all-btn"
       />
     </div>
     
@@ -228,6 +238,25 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+    
+    <!-- Confirmation Dialog for Grant All Access -->
+    <q-dialog v-model="showConfirmDialog" persistent>
+      <q-card style="min-width: 350px">
+        <q-card-section class="row items-center">
+          <q-avatar icon="security" color="primary" text-color="white" />
+          <span class="q-ml-sm text-h6">Confirm Access Grant</span>
+        </q-card-section>
+
+        <q-card-section>
+          Are you sure you want to grant all users access to all papers? This action cannot be undone.
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="negative" v-close-popup />
+          <q-btn flat label="Confirm" color="positive" @click="grantAllAccess" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -269,6 +298,10 @@ export default defineComponent({
     const rightSelectAll = ref(false)
     const availableUsersList = ref<string[]>([])
     const selectedUsersList = ref<string[]>([])
+    
+    // New refs for Grant All Access functionality
+    const grantingAllAccess = ref(false)
+    const showConfirmDialog = ref(false)
 
     const formatTitle = (val: string) => {
       return val.length > 94 ? val.substring(0, 94) + '...' : val
@@ -490,6 +523,45 @@ export default defineComponent({
       return avatarColors[index % avatarColors.length]
     }
 
+    // New functions for Grant All Access
+    const confirmGrantAllAccess = () => {
+      showConfirmDialog.value = true
+    }
+
+    const grantAllAccess = async () => {
+      grantingAllAccess.value = true
+      showConfirmDialog.value = false
+      
+      try {
+        const response = await axios.post(`${BACKEND_URL}/api/grant-all-access`)
+        
+        if (response.data.success) {
+          // Show success notification
+          $q.notify({
+            type: 'positive',
+            message: response.data.message,
+            position: 'top',
+            timeout: 3000
+          })
+          
+          // Reload data to reflect changes
+          await loadPapers()
+        } else {
+          throw new Error(response.data.message || 'Failed to grant access')
+        }
+      } catch (error) {
+        console.error('Error granting all access:', error)
+        $q.notify({
+          type: 'negative',
+          message: error instanceof Error ? error.message : 'Failed to grant all access',
+          position: 'top',
+          timeout: 3000
+        })
+      } finally {
+        grantingAllAccess.value = false
+      }
+    }
+
     onMounted(() => {
       loadPapers()
       loadUsers()
@@ -518,6 +590,11 @@ export default defineComponent({
       removeUserAccess,
       openAddUserDialog,
       getAvatarColor,
+      // New properties for Grant All Access
+      grantingAllAccess,
+      showConfirmDialog,
+      confirmGrantAllAccess,
+      grantAllAccess
     }
   },
 })
@@ -526,6 +603,11 @@ export default defineComponent({
 <style lang="scss" scoped>
 .back-btn {
   font-size: 16px;
+  padding: 8px 16px;
+}
+
+.grant-all-btn {
+  font-size: 16px !important;
   padding: 8px 16px;
 }
 

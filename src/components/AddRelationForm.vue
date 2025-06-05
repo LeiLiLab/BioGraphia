@@ -204,7 +204,7 @@
 
 <script>
 // 导入实体和关系数据
-import nodesRelationsData from '../../data/nodes_relations_database.json'
+// import nodesRelationsData from '../../data/nodes_relations_database.json'
 
 export default {
   name: 'AddRelationForm',
@@ -212,6 +212,14 @@ export default {
     supportingText: {
       type: String,
       default: ''
+    },
+    masterNodes: {
+      type: Array,
+      default: () => []
+    },
+    masterRelations: {
+      type: Array,
+      default: () => []
     }
   },
   data() {
@@ -225,8 +233,41 @@ export default {
         metaRelations: []
       },
       // 选项列表
-      nodesOptionsList: nodesRelationsData.nodes,
-      relationsOptionsList: nodesRelationsData.relations
+      nodesOptionsList: [...this.masterNodes],
+      relationsOptionsList: [...this.masterRelations]
+    }
+  },
+  watch: {
+    masterNodes(newVal) {
+      this.nodesOptionsList = [...newVal];
+      // If current formData.head is a custom value not in newVal,
+      // and q-select is not currently focused/filtering,
+      // we might need to ensure it's still in nodesOptionsList.
+      // However, q-select with add-unique should handle showing the current value.
+      // For filtering purposes, resetting to newVal is correct.
+      if (this.formData.head && !newVal.includes(this.formData.head) && !this.nodesOptionsList.includes(this.formData.head)) {
+        // Add it back if it was a custom entry and got wiped by master list update.
+        // This is a simple way, might need more robust handling if complex interactions occur.
+         if (this.$refs.headSelect && this.$refs.headSelect.isBuffering) {
+          // do nothing if select is active
+         } else {
+            this.nodesOptionsList.push(this.formData.head)
+         }
+      }
+    },
+    masterRelations(newVal) {
+      this.relationsOptionsList = [...newVal];
+      if (this.formData.relation && !newVal.includes(this.formData.relation) && !this.relationsOptionsList.includes(this.formData.relation)) {
+        if (this.$refs.relationSelect && this.$refs.relationSelect.isBuffering) {
+            // do nothing
+        } else {
+            this.relationsOptionsList.push(this.formData.relation)
+        }
+      }
+    },
+    supportingText(newVal) {
+      // Update formData.text when the prop changes
+      this.formData.text = newVal;
     }
   },
   computed: {
@@ -241,14 +282,14 @@ export default {
     filterNodesOptions(val, update) {
       if (val === '') {
         update(() => {
-          this.nodesOptionsList = nodesRelationsData.nodes;
+          this.nodesOptionsList = [...this.masterNodes];
         });
         return;
       }
 
       update(() => {
         const needle = val.toLowerCase();
-        this.nodesOptionsList = nodesRelationsData.nodes.filter(
+        this.nodesOptionsList = this.masterNodes.filter(
           v => v.toLowerCase().indexOf(needle) > -1
         );
       });
@@ -258,14 +299,14 @@ export default {
     filterRelationsOptions(val, update) {
       if (val === '') {
         update(() => {
-          this.relationsOptionsList = nodesRelationsData.relations;
+          this.relationsOptionsList = [...this.masterRelations];
         });
         return;
       }
 
       update(() => {
         const needle = val.toLowerCase();
-        this.relationsOptionsList = nodesRelationsData.relations.filter(
+        this.relationsOptionsList = this.masterRelations.filter(
           v => v.toLowerCase().indexOf(needle) > -1
         );
       });

@@ -37,3 +37,5 @@ yarn-error.log*
 /data
 /data_copy
 /data_backup
+/data_backup_newest
+/projects

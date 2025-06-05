@@ -2,18 +2,30 @@
   <q-layout view="lHh Lpr lFf">
     <q-header v-if="$route.path !== '/'" elevated>
       <q-toolbar class="row justify-between items-center">
-        <div class="text-h6 row items-center">
-          Current User: {{ currentUser?.username }}
+        <div class="text-subtitle1 row items-center">
+          Current Project/User: {{ currentProject?.name || 'Unknown' }}/{{ currentUser?.username }}
           <q-btn flat round dense icon="logout" class="q-ml-sm" @click="handleLogout">
             <q-tooltip class="tooltip-custom">Log Out</q-tooltip>
           </q-btn>
         </div>
+        
+        <!-- 中间标题 -->
+        <div v-if="$route.path === '/login'" class="page-title">
+          Please Select or Add a User to Continue
+        </div>
+        <div v-if="$route.path === '/project-select'" class="page-title">
+          Please Select a Project to Continue
+        </div>
         <div v-if="$route.path === '/admin-dashboard'" class="admin-title">
           Admin Control Panel
+        </div>
+        <div v-if="$route.path === '/project-prompt'" class="page-title">
+          Project Prompt Configuration
         </div>
         <div v-if="$route.query.mode === 'temp'" class="temp-warning">
           ⚠️ Editing in Temporary Directory
         </div>
+        
         <div class="text-h6" style="visibility: hidden">Placeholder</div>
       </q-toolbar>
     </q-header>
@@ -34,6 +46,11 @@ interface User {
   username: string
 }
 
+interface Project {
+  id: string
+  name: string
+}
+
 export default defineComponent({
   name: 'MainLayout',
 
@@ -41,6 +58,7 @@ export default defineComponent({
     const router = useRouter()
     const $q = useQuasar()
     const currentUser = ref<User | null>(null)
+    const currentProject = ref<Project | null>(null)
 
     // 监听 localStorage 的变化
     const updateCurrentUser = () => {
@@ -49,6 +67,19 @@ export default defineComponent({
         currentUser.value = JSON.parse(userStr)
       } else {
         currentUser.value = null
+      }
+      
+      const projectStr = localStorage.getItem('currentProject')
+      if (projectStr) {
+        try {
+          // 尝试解析为JSON
+          currentProject.value = JSON.parse(projectStr)
+        } catch {
+          // 如果解析失败，说明项目名是简单字符串
+          currentProject.value = { id: projectStr, name: projectStr }
+        }
+      } else {
+        currentProject.value = null
       }
     }
 
@@ -79,6 +110,7 @@ export default defineComponent({
 
     return {
       currentUser,
+      currentProject,
       handleLogout,
     }
   },
@@ -88,6 +120,10 @@ export default defineComponent({
 <style lang="scss" scoped>
 .q-toolbar {
   padding: 0 20px;
+
+  .text-subtitle1 {
+    min-width: 200px;
+  }
 
   .text-h6 {
     min-width: 200px;
@@ -135,6 +171,16 @@ export default defineComponent({
   }
 
   .admin-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 24px;
+    font-weight: 500;
+    color: white;
+    text-align: center;
+  }
+
+  .page-title {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
