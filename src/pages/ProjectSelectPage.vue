@@ -365,7 +365,7 @@ export default defineComponent({
         console.error('Error loading project permissions:', error)
         $q.notify({
           type: 'negative',
-          message: '加载项目权限数据失败',
+          message: 'Failed to load project permissions data',
           position: 'top',
           timeout: 3000,
         })
@@ -602,7 +602,7 @@ export default defineComponent({
         
         $q.notify({
           type: 'positive',
-          message: '项目权限更新成功',
+          message: 'Project permissions updated successfully',
           position: 'top',
           timeout: 2000
         })
@@ -613,7 +613,7 @@ export default defineComponent({
         console.error('Error saving project permissions:', error)
         $q.notify({
           type: 'negative',
-          message: '保存项目权限失败',
+          message: 'Failed to save project permissions',
           position: 'top',
           timeout: 3000,
         })

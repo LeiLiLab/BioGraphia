@@ -121,7 +121,7 @@
     <!-- Scraping progress section -->
     <div v-if="showProgress" class="text-h6 q-mb-md text-center">
       <div class="row items-center justify-center">
-        <div class="q-mr-sm">Processing Papers: {{ currentPosition + 1 }}/{{ totalPapers }}</div>
+        <div class="q-mr-sm">Processing Papers: {{ totalPapers - remainingPapersInQueue }}/{{ totalPapers }}</div>
         <q-spinner color="primary" size="1.5em" />
       </div>
     </div>
@@ -153,12 +153,13 @@ export default defineComponent({
     const papers = ref<Paper[]>([])
     const loading = ref(true)
     const showProgress = ref(false)
-    const currentPosition = ref(0)
     const totalPapers = ref(0)
     let statusCheckInterval: number | null = null
     const showCheckboxes = ref(false)
     const selectedPapers = ref<string[]>([])
     const isAllSelected = ref(false)
+    const isAdmin = ref(false)
+    const remainingPapersInQueue = ref(0)
 
     const goToProjectSelection = () => {
       router.push('/project-select')
@@ -251,68 +252,56 @@ export default defineComponent({
     const checkScrapingStatus = async () => {
       try {
         const response = await axios.get(`${BACKEND_URL}/api/scraping-status`);
-        const { total_papers, completed_papers, remaining_papers } = response.data;
+        const { total_papers, completed_papers, remaining_papers } = response.data
+
+        remainingPapersInQueue.value = remaining_papers
 
         // 如果有总数大于0，说明有爬取任务在进行
         if (total_papers > 0) {
           showProgress.value = true;
           totalPapers.value = total_papers;
 
-          // 更新当前进度
-          const completedCount = completed_papers.length;
-          if (completedCount > currentPosition.value) {
-            // 有新完成的论文
-            const newCompletedPapers = completed_papers.slice(currentPosition.value);
-
-            // 更新进度（保持从0开始计数，但显示时会+1）
-            currentPosition.value = completedCount;
-
-            // 处理每个新完成的论文
-            for (const paper of newCompletedPapers) {
-              if (paper.status === 'success') {
-                // 成功时刷新论文列表
-                loadPapers();
-                
-                // 显示成功通知
-                $q.notify({
-                  type: 'positive',
-                  message: `Paper ${paper.pmid} processed successfully`,
-                  position: 'top',
-                  html: true,
-                  classes: 'notification-message',
-                  timeout: 3000,
-                });
-              } else if (paper.status === 'error' || paper.status === 'failed') {
-                // 显示错误通知
-                $q.notify({
-                  type: 'negative',
-                  message: `Failed to process paper ${paper.pmid}: ${paper.error || 'Unknown error'}`,
-                  position: 'top',
-                  html: true,
-                  classes: 'notification-message',
-                  timeout: 3000,
-                });
-              }
+          // Since the backend now clears the completed_papers list on read,
+          // we process all papers received.
+          for (const paper of completed_papers) {
+            if (paper.status === 'success') {
+              // 成功时刷新论文列表
+              loadPapers();
+              
+              // 显示成功通知 (仅管理员)
+              $q.notify({
+                type: 'positive',
+                message: `Paper ${paper.pmid} processed successfully`,
+                position: 'top',
+                html: true,
+                classes: 'notification-message',
+                timeout: 3000,
+              });
+            } else if (paper.status === 'error' || paper.status === 'failed') {
+              // 显示错误通知 (仅管理员)
+              $q.notify({
+                type: 'negative',
+                message: `Failed to process paper ${paper.pmid}: ${paper.error || 'Unknown error'}`,
+                position: 'top',
+                html: true,
+                classes: 'notification-message',
+                timeout: 3000,
+              });
             }
           }
 
           // 如果所有论文都处理完毕
           if (remaining_papers === 0) {
-            showProgress.value = false;
-            if (statusCheckInterval !== null) {
-              clearInterval(statusCheckInterval);
-              statusCheckInterval = null;
+            if (total_papers > 0) { // Only show completion notification if a batch was running
+              $q.notify({
+                type: 'positive',
+                message: `Completed processing all papers`,
+                position: 'top',
+                html: true,
+                classes: 'notification-message',
+                timeout: 3000,
+              });
             }
-
-            // 显示完成通知
-            $q.notify({
-              type: 'positive',
-              message: `Completed processing all papers`,
-              position: 'top',
-              html: true,
-              classes: 'notification-message',
-              timeout: 3000,
-            });
 
             // 最后再刷新一次论文列表
             loadPapers();
@@ -321,7 +310,6 @@ export default defineComponent({
           // 如果没有正在处理的论文，但正在显示进度条，则隐藏它
           if (showProgress.value) {
             showProgress.value = false;
-            currentPosition.value = 0;
             totalPapers.value = 0;
             
             // 清除定时器
@@ -467,16 +455,28 @@ export default defineComponent({
     }
 
     onMounted(() => {
+      const userStr = localStorage.getItem('currentUser')
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr)
+          if (userObj && userObj.username) {
+            isAdmin.value = userObj.username === 'Admin'
+          }
+        } catch (error) {
+          console.error('Failed to parse user object from localStorage:', error)
+        }
+      }
+
       loadPapers()
       
-      // 页面加载时启动状态检查并触发一次立即检查
-      if (statusCheckInterval !== null) {
-        clearInterval(statusCheckInterval)
+      // Only start status checking for admin users
+      if (isAdmin.value) {
+        if (statusCheckInterval !== null) {
+          clearInterval(statusCheckInterval)
+        }
+        statusCheckInterval = setInterval(checkScrapingStatus, 2500) as unknown as number
+        checkScrapingStatus()
       }
-      statusCheckInterval = setInterval(checkScrapingStatus, 2500) as unknown as number
-      
-      // 立即检查一次状态，以便立即捕获已完成的爬取
-      checkScrapingStatus()
     })
 
     onUnmounted(() => {
@@ -492,7 +492,6 @@ export default defineComponent({
       loading,
       formatTitle,
       showProgress,
-      currentPosition,
       totalPapers,
       handleDownClick,
       showCheckboxes,
@@ -504,6 +503,8 @@ export default defineComponent({
       handleActionDown,
       isAllSelected,
       goToProjectSelection,
+      isAdmin,
+      remainingPapersInQueue,
     }
   },
 })

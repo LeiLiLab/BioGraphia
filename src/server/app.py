@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory, send_file, session
+from flask import Flask, jsonify, request, send_from_directory, send_file, session, has_request_context
 from flask_cors import CORS
 import json
 import os
@@ -25,6 +25,11 @@ import string
 from io import BytesIO
 import concurrent.futures
 from bs4 import BeautifulSoup
+from flask import has_request_context
+import threading
+
+# Add thread-local storage for project context in background tasks
+thread_local_data = threading.local()
 
 # 添加项目根目录到 Python 路径
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -54,8 +59,26 @@ progress_lock = Lock()  # 用于保护completed_papers和in_progress_papers
 
 # 定义基于会话的项目路径处理函数
 def get_current_project_name():
-    """获取当前项目名称，从会话中读取，如果不存在则使用默认值"""
-    return session.get('current_project_name', 'default')
+    """
+    获取当前项目名称。
+    在后台线程中，从线程本地存储获取。
+    在Web请求中，从会话中获取。
+    """
+    # 1. 优先从线程本地存储获取（用于后台任务）
+    if hasattr(thread_local_data, 'project_name'):
+        project_name = thread_local_data.project_name
+        print(f"[DEBUG] get_current_project_name: Found project '{project_name}' in thread-local storage. Thread ID: {threading.get_ident()}")
+        return project_name
+    
+    # 2. 如果在请求上下文中，从会话获取（用于Web请求）
+    if has_request_context():
+        project_name = session.get('current_project_name', 'default')
+        print(f"[DEBUG] get_current_project_name: Found project '{project_name}' in session for request.")
+        return project_name
+        
+    # 3. 如果两者都不可用，则返回默认值
+    print(f"[DEBUG] get_current_project_name: No project context found. Falling back to 'default'. Thread ID: {threading.get_ident()}")
+    return 'default'
 
 def get_project_dir():
     """获取当前项目的根目录"""
@@ -89,6 +112,7 @@ def get_prompt_config_file():
 def load_prompt_config():
     """加载提示词配置，如果文件不存在则返回默认配置"""
     prompt_config_file = get_prompt_config_file()
+    print(f"[DEBUG] load_prompt_config: Attempting to load prompt from: {prompt_config_file}")
     if not os.path.exists(prompt_config_file):
         # 如果文件不存在，返回默认配置
         default_config = {
@@ -104,7 +128,9 @@ def load_prompt_config():
     
     # 从文件加载配置
     with open(prompt_config_file, 'r', encoding='utf-8') as f:
-        return json.load(f)
+        config = json.load(f)
+        print(f"[DEBUG] load_prompt_config: Loaded prompt template starting with: '{config.get('PROMPT_TEMPLATE', '')[:70]}...'")
+        return config
 
 def get_user_access_file_path():
     """获取当前项目的用户访问控制文件路径"""
@@ -484,15 +510,24 @@ def generate_initial_analysis(article_data, pmid, prompt_version=None):
         # 使用extractor模块代替generator模块
         from utils.extractor import process_paper
         
+        print(f"[DEBUG] generate_initial_analysis: About to call process_paper. Current project context is '{get_current_project_name()}'")
+
         # 如果指定了prompt版本，先保存论文数据到对应版本目录
         if prompt_version:
             save_paper_data(pmid, article_data, prompt_version)
+        
+        # 从正确的项目上下文中加载prompts
+        prompt_config = load_prompt_config()
+        prompt_template = prompt_config.get("PROMPT_TEMPLATE")
+        json_prompt_template = prompt_config.get("JSON_PROMPT_TEMPLATE")
         
         process_paper(
             title=article_data["title"],
             abstract=article_data["abstract"], 
             output_path=output_path,
-            pmid=pmid
+            pmid=pmid,
+            prompt_template=prompt_template,
+            json_prompt_template=json_prompt_template
         )
         
         with open(output_path, 'r', encoding='utf-8') as f:
@@ -1986,11 +2021,11 @@ def process_paper_with_project_context(url, prompt_version=None, project_name='d
     pmid = url.rstrip('/').split('/')[-1]
     print(f"[PAPER-PROCESS] Starting to process paper: {pmid} in project {project_name}")
     
-    # 保存当前项目名，以便后续恢复
+    # 在线程本地存储中设置项目名称，以便下游函数可以访问
+    thread_local_data.project_name = project_name
+    print(f"[DEBUG] process_paper_with_project_context: Set thread-local project_name to '{project_name}'. Thread ID: {threading.get_ident()}")
+    
     try:
-        # 这里不能直接修改Flask session，因为在线程中没有请求上下文
-        # 我们需要使用一个专门为线程设计的上下文管理机制
-        
         # 创建临时目录路径
         if project_name != 'default':
             project_dir = os.path.join(ROOT_DIR, 'projects', project_name)
@@ -2027,6 +2062,11 @@ def process_paper_with_project_context(url, prompt_version=None, project_name='d
         import traceback
         traceback.print_exc()
         return False, None, error_message
+    finally:
+        # 清理线程本地存储，防止内存泄漏
+        if hasattr(thread_local_data, 'project_name'):
+            print(f"[DEBUG] process_paper_with_project_context: Cleaning up thread-local project_name '{thread_local_data.project_name}'. Thread ID: {threading.get_ident()}")
+            del thread_local_data.project_name
 
 # 新增函数：在特定项目上下文中处理论文（带重试）
 def process_paper_with_retry_in_context(url, prompt_version=None, project_name='default', max_retries=3, retry_delay=5):
@@ -2044,6 +2084,7 @@ def process_paper_with_retry_in_context(url, prompt_version=None, project_name='
     """
     pmid = url.rstrip('/').split('/')[-1]
     print(f"[PAPER-RETRY] Starting to process paper: {pmid} in project {project_name}")
+    print(f"[DEBUG] process_paper_with_retry_in_context: Current project from thread-local is '{get_current_project_name()}'. Thread ID: {threading.get_ident()}")
     
     # 构造项目特定的路径
     project_dir = os.path.join(ROOT_DIR, 'projects', project_name)
@@ -2088,11 +2129,20 @@ def process_paper_with_retry_in_context(url, prompt_version=None, project_name='
             
             # 生成分析结果
             from utils.extractor import process_paper
+            print(f"[DEBUG] process_paper_with_retry_in_context: About to call process_paper from extractor. Current project context should be '{get_current_project_name()}'")
+            
+            # 从正确的项目上下文中加载prompts
+            prompt_config = load_prompt_config()
+            prompt_template = prompt_config.get("PROMPT_TEMPLATE")
+            json_prompt_template = prompt_config.get("JSON_PROMPT_TEMPLATE")
+
             process_paper(
                 title=article_data["title"],
                 abstract=article_data["abstract"], 
                 output_path=output_path,
-                pmid=pmid
+                pmid=pmid,
+                prompt_template=prompt_template,
+                json_prompt_template=json_prompt_template
             )
             
             print(f"[PAPER-RETRY] Analysis generated for paper {pmid} at {output_path}")
@@ -2123,7 +2173,7 @@ def process_paper_with_retry_in_context(url, prompt_version=None, project_name='
 
 @app.route('/api/scraping-status', methods=['GET'])
 def get_scraping_status():
-    """Get current scraping status"""
+    """Get current scraping status and clears the completed papers list."""
     try:
         # 使用锁保护对共享资源的访问
         with progress_lock:
@@ -2137,6 +2187,9 @@ def get_scraping_status():
                 "remaining_papers": remaining_papers,
                 "in_progress": list(in_progress_papers)  # 创建副本
             }
+            
+            # Clear completed papers after sending them
+            completed_papers.clear()
             
         return jsonify(status_data)
     except Exception as e:
@@ -2153,6 +2206,10 @@ def batch_initialize():
         file = request.files['file']
         username = request.form.get('username')
         prompt_version = request.form.get('promptVersion') # 获取 promptVersion
+        
+        # Get current project name from session
+        project_name = get_current_project_name()
+        print(f"[BATCH-INIT] Batch initialize requested for project: {project_name}")
         
         if not username:
             return jsonify({"error": "Username is required"}), 400
@@ -2189,7 +2246,10 @@ def batch_initialize():
         
         # Add all URLs to the queue
         for url in urls:
-            scraping_queue.put((url, username, prompt_version))  # 将 username, URL 和 prompt_version 一起放入队列
+            pmid = url.rstrip('/').split('/')[-1]
+            # Use the new queue format with project name and pmid
+            scraping_queue.put((url, username, prompt_version, project_name, pmid))
+            print(f"[BATCH-INIT] Added to queue: PMID {pmid}, project {project_name}")
         
         # Initialize progress tracking
         process_queue()

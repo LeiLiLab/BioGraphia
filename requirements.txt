@@ -16,3 +16,4 @@ pytz
 requests
 bs4
 openai
+flask_cors

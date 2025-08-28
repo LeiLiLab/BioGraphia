@@ -23,7 +23,7 @@
       <button @click="toggleEdgeLabels" class="btn">{{ showEdgeLabels ? 'Hide' : 'Show' }} Edge Labels</button>
       <button @click="toggleFreezeGraph" class="btn">{{ isFrozen ? 'Unfreeze' : 'Freeze' }} Graph</button>
       <div class="save-container">
-        <button @click.stop.prevent="handleSaveClick" class="btn save-btn" :disabled="!hasUnsavedChanges || saveStatus === 'saving'">
+        <button @click.stop.prevent="handleSaveClick" class="btn save-btn" :disabled="!canSave || saveStatus === 'saving'">
           {{ saveStatus === 'saving' ? 'Saving...' : 'Save Graph' }}
         </button>
         <span v-if="hasUnsavedChanges" class="unsaved-indicator">*</span>
@@ -49,32 +49,7 @@
       <div class="relation-text-content">{{ paperAbstract }}</div>
     </div>
     
-    <!-- Supporting text selection window -->
-    <div v-if="showSupportingTextSelection" class="supporting-text-window">
-      <div class="text-selection-header">
-        <div class="text-selection-title">Select Supporting Text</div>
-        <button @click="cancelSupportingTextSelection" class="close-btn">&times;</button>
-      </div>
-      <div class="text-selection-content">
-        <div class="text-selection-relation-info">
-          Adding relation: <strong>{{ pendingRelationData?.label || '' }}</strong>
-        </div>
-        <div class="abstract-container" 
-             @mouseup="handleTextSelection"
-             @mousedown="startTextSelection"
-             v-html="highlightedAbstractForSelection"></div>
-        <div class="text-selection-instruction" v-if="!selectedSupportingText">
-          Please select the supporting text for this relation by highlighting text in the abstract above.
-        </div>
-        <div class="text-selection-feedback" v-if="selectedSupportingText">
-          <span class="selection-indicator">✓</span> Text selected. Click "Save" to confirm.
-        </div>
-        <div class="text-selection-buttons">
-          <button @click="cancelSupportingTextSelection" class="btn cancel-btn">Cancel</button>
-          <button @click="confirmSupportingText" class="btn">Save</button>
-        </div>
-      </div>
-    </div>
+
     
     <!-- Connection mode indicator -->
     <div v-if="isCreatingConnection" class="connection-mode">
@@ -238,17 +213,14 @@ export default {
       sourceRelation: null,
       metaRelationPreview: null,
       
-      // Supporting text selection
-      showSupportingTextSelection: false,
-      selectedSupportingText: '',
-      supportingTextCallback: null,
-      pendingRelationData: null,
-      selectionStartOffset: -1,
-      selectionEndOffset: -1,
+
       
-      // 新增加的状态跟踪
-      isAddingNode: false,
-      pendingNodeData: null,
+      // 临时节点管理
+      temporaryNodes: new Set(), // 存储临时节点的ID
+      
+      // 移除原有的新增加的状态跟踪，因为我们改变了逻辑
+      // isAddingNode: false,
+      // pendingNodeData: null,
     };
   },
   mounted() {
@@ -304,6 +276,9 @@ export default {
     async fetchGraphData() {
       this.loading = true;
       this.error = null;
+      
+      // 清除临时节点（刷新功能）
+      this.temporaryNodes.clear();
       
       // 重置冻结状态，因为这是完全刷新图表
       this.isFrozen = false;
@@ -421,7 +396,10 @@ export default {
         this.saveMessage = '';
         
         // Initialize history stack with initial state
-        this.historyStack = [JSON.parse(JSON.stringify(this.graphData))];
+        this.historyStack = [{
+          graphData: JSON.parse(JSON.stringify(this.graphData)),
+          temporaryNodes: new Set() // Initially no temporary nodes
+        }];
         this.redoStack = [];
         
         this.renderGraph();
@@ -491,8 +469,8 @@ export default {
           .style('opacity', 1);
 
         this.svg.selectAll('.node text')
-          .attr('fill', '#333')
-          .attr('font-weight', 'normal');
+          .attr('fill', d => this.temporaryNodes.has(d.id) ? '#2196F3' : '#333')
+          .attr('font-weight', d => this.temporaryNodes.has(d.id) ? 'bold' : 'normal');
 
         // Reset link styles - select both the groups and the paths
         this.svg.selectAll('.links g')
@@ -578,7 +556,25 @@ export default {
       const links = [];
       const metaLinks = []; // Add an array to store metaRelation links
       
-      // Process relations to create nodes and links
+      // First, add all existing nodes from graphData.nodes (including temporary nodes)
+      if (this.graphData.nodes && Array.isArray(this.graphData.nodes)) {
+        this.graphData.nodes.forEach(node => {
+          if (node && node.id) {
+            nodesMap.set(node.id, {
+              id: node.id,
+              label: node.label || node.id,
+              radius: node.radius || this.calculateNodeRadius(node.label || node.id),
+              // Preserve existing position if available
+              x: node.x,
+              y: node.y,
+              fx: node.fx,
+              fy: node.fy
+            });
+          }
+        });
+      }
+      
+      // Process relations to create additional nodes and links
       this.graphData.relations.forEach(relation => {
         // Skip invalid relations
         if (!relation || !relation.head || !relation.tail) {
@@ -893,14 +889,26 @@ export default {
               .attr('class', 'node')
               .style('cursor', 'pointer');
             
-            // Add only text elements, no circles
+            // Add text elements
             nodeEnter.append('text')
               .attr('text-anchor', 'middle')
               .attr('dy', '0.35em')
               .text(d => d.label)
-              .attr('fill', '#333')
-              .attr('font-weight', 'normal')
+              .attr('fill', d => this.temporaryNodes.has(d.id) ? '#2196F3' : '#333') // 临时节点使用蓝色
+              .attr('font-weight', d => this.temporaryNodes.has(d.id) ? 'bold' : 'normal') // 临时节点加粗
               .attr('font-size', '14px');
+              
+            // Add dashed underline for temporary nodes
+            nodeEnter.filter(d => this.temporaryNodes.has(d.id))
+              .append('line')
+              .attr('class', 'temporary-underline')
+              .attr('x1', d => -(d.label.length * 4)) // Approximate text width
+              .attr('x2', d => d.label.length * 4)
+              .attr('y1', 10)
+              .attr('y2', 10)
+              .attr('stroke', '#2196F3')
+              .attr('stroke-width', 1.5)
+              .attr('stroke-dasharray', '3,2');
               
             // Add event handlers
             nodeEnter.on('click', (event, d) => {
@@ -921,8 +929,8 @@ export default {
               const element = d3.select(event.currentTarget);
               if (!element.classed('highlighted') && !element.classed('connected')) {
                 element.select('text')
-                  .attr('font-weight', 'normal')
-                  .attr('fill', '#333');
+                  .attr('font-weight', d => this.temporaryNodes.has(d.id) ? 'bold' : 'normal')
+                  .attr('fill', d => this.temporaryNodes.has(d.id) ? '#2196F3' : '#333');
               }
               
               // 直接调用this上的方法隐藏tooltip
@@ -950,7 +958,30 @@ export default {
               
             return nodeEnter;
           },
-          update => update,
+          update => {
+            // Update existing nodes
+            update.select('text')
+              .text(d => d.label)
+              .attr('fill', d => this.temporaryNodes.has(d.id) ? '#2196F3' : '#333')
+              .attr('font-weight', d => this.temporaryNodes.has(d.id) ? 'bold' : 'normal');
+              
+            // Remove existing underlines
+            update.selectAll('.temporary-underline').remove();
+            
+            // Add underlines for temporary nodes
+            update.filter(d => this.temporaryNodes.has(d.id))
+              .append('line')
+              .attr('class', 'temporary-underline')
+              .attr('x1', d => -(d.label.length * 4))
+              .attr('x2', d => d.label.length * 4)
+              .attr('y1', 10)
+              .attr('y2', 10)
+              .attr('stroke', '#2196F3')
+              .attr('stroke-width', 1.5)
+              .attr('stroke-dasharray', '3,2');
+              
+            return update;
+          },
           exit => exit.remove()
         );
       
@@ -1804,6 +1835,7 @@ export default {
           this.showEditFeedback('Error: Cannot rename node', 'error');
           return false;
         }
+        // renameNode will handle its own success/error feedback
         return this.renameNode(selectedElement.id, newValue);
       };
       this.closeContextMenu();
@@ -2001,16 +2033,26 @@ export default {
       this.editDialogValue = '';
       this.showEditDialog = true;
       this.editDialogCallback = (label) => {
-        // 储存关系数据，但不立即添加
-        this.pendingRelationData = {
-          sourceId: this.sourceNode.id,
-          targetId: targetNode.id,
-          label: label
-        };
-        // 关闭标签对话框
-        this.showEditDialog = false;
-        // 显示选择支持文本的界面
-        this.showSupportingTextSelection = true;
+        // 直接添加关系，不需要支持文本
+        this.addRelation(
+          this.sourceNode.id,
+          targetNode.id,
+          label,
+          "" // 空的支持文本
+        );
+        
+        // 检查是否有临时节点参与了关系
+        const wasTemporarySource = this.temporaryNodes.has(this.sourceNode.id);
+        const wasTemporaryTarget = this.temporaryNodes.has(targetNode.id);
+        
+        if (wasTemporarySource || wasTemporaryTarget) {
+          this.showEditFeedback('⚠️ Relation added with temporary node. Save to make it permanent.', 'warning');
+        } else {
+          this.showEditFeedback('Relation added successfully', 'success');
+        }
+        
+        this.cancelConnectionCreation();
+        return true;
       };
     },
     
@@ -2032,39 +2074,25 @@ export default {
       };
     },
     
-    cancelConnectionCreation() {
-      // 如果在添加新节点过程中取消，需要移除新创建的节点
-      if (this.isAddingNode && this.pendingNodeData) {
-        // 移除先前添加的临时节点
-        this.graphData.nodes = this.graphData.nodes.filter(
-          node => node.id !== this.pendingNodeData.id
-        );
-        this.renderGraph(); // 重新渲染图以反映变化
-        this.pendingNodeData = null;
-        this.isAddingNode = false;
+          cancelConnectionCreation() {
+        this.isCreatingConnection = false;
+        this.sourceNode = null;
         
-        // 修改为使用toast样式提示（使用warning类型而不是error）
-        this.showEditFeedback('Node addition canceled', 'warning');
-      }
-
-      this.isCreatingConnection = false;
-      this.sourceNode = null;
-      
-      // 移除预览线
-      if (this.connectionPreview) {
-        this.connectionPreview.remove();
-        this.connectionPreview = null;
-      }
-      
-      // 重置光标和点击处理器
-      this.svg.style('cursor', 'default');
-      this.svg.selectAll('.node')
-        .style('cursor', 'pointer')
-        .on('click.connect', null);
+        // 移除预览线
+        if (this.connectionPreview) {
+          this.connectionPreview.remove();
+          this.connectionPreview = null;
+        }
         
-      // 移除鼠标移动处理器
-      this.svg.on('mousemove', null);
-    },
+        // 重置光标和点击处理器
+        this.svg.style('cursor', 'default');
+        this.svg.selectAll('.node')
+          .style('cursor', 'pointer')
+          .on('click.connect', null);
+          
+        // 移除鼠标移动处理器
+        this.svg.on('mousemove', null);
+      },
     
     cancelMetaRelationCreation() {
       this.isCreatingMetaRelation = false;
@@ -2323,6 +2351,14 @@ export default {
         // Store the old ID before updating
         const oldId = node.id;
         
+        // Check if this is a temporary node and update the temporary nodes set
+        const wasTemporary = this.temporaryNodes.has(oldId);
+        if (wasTemporary) {
+          this.temporaryNodes.delete(oldId);
+          this.temporaryNodes.add(newLabel);
+          console.log(`Updated temporary node: ${oldId} -> ${newLabel}`);
+        }
+        
         // Update the node label and ID
         node.label = newLabel;
         node.id = newLabel; // Update the ID to match the new label
@@ -2344,6 +2380,13 @@ export default {
         
         // Force a complete re-render of the graph to ensure all references are updated
         this.renderGraph();
+        
+        // Show appropriate success message
+        if (wasTemporary) {
+          this.showEditFeedback(`⚠️ Temporary node renamed to "${newLabel}"`, 'warning');
+        } else {
+          this.showEditFeedback(`Node renamed to "${newLabel}" successfully`, 'success');
+        }
         
         // Log the updated graph data for debugging
         console.log('Updated graph data after rename:', JSON.stringify({
@@ -2423,6 +2466,13 @@ export default {
       
       // Remove the node from the nodes array
       this.graphData.nodes.splice(nodeIndex, 1);
+      
+      // Remove from temporary nodes if it was temporary
+      if (this.temporaryNodes.has(nodeId)) {
+        this.temporaryNodes.delete(nodeId);
+        console.log(`Removed ${nodeId} from temporary nodes (node deleted)`);
+      }
+      
       this.hasUnsavedChanges = true;
       
       // Update the visualization
@@ -2659,14 +2709,30 @@ export default {
       const nodes = [];
       const relations = [];
       
-      // Get nodes from the graph
+      // Get nodes from the graph 
+      // Include temporary nodes if they participate in relations
+      const nodesInRelations = new Set();
+      if (this.graphData && Array.isArray(this.graphData.relations)) {
+        this.graphData.relations.forEach(rel => {
+          if (rel && rel.head && rel.tail) {
+            nodesInRelations.add(rel.head);
+            nodesInRelations.add(rel.tail);
+          }
+        });
+      }
+      
       if (this.graphData && Array.isArray(this.graphData.nodes)) {
         this.graphData.nodes.forEach(node => {
           if (node && node.id) {
-            nodes.push({
-              id: node.id,
-              label: node.label || node.id
-            });
+            // Include node if it's not temporary, or if it's temporary but participates in relations
+            const shouldInclude = !this.temporaryNodes.has(node.id) || nodesInRelations.has(node.id);
+            
+            if (shouldInclude) {
+              nodes.push({
+                id: node.id,
+                label: node.label || node.id
+              });
+            }
           }
         });
       }
@@ -2728,6 +2794,16 @@ export default {
           this.hasUnsavedChanges = false;
           this.saveStatus = 'saved';
           this.saveMessage = 'Changes saved successfully!';
+          
+          // Clear temporary nodes after successful save - they are now permanent
+          const tempNodesCount = this.temporaryNodes.size;
+          this.temporaryNodes.clear();
+          
+          if (tempNodesCount > 0) {
+            console.log(`Converted ${tempNodesCount} temporary nodes to permanent after save`);
+            // Re-render to update node styles
+            this.renderGraph();
+          }
           
           // 触发全局事件，通知其他组件（如PaperAnalysis）数据已更新
           const event = new CustomEvent('graph-data-updated', { 
@@ -3020,92 +3096,9 @@ export default {
       }
     },
     
-    // 处理文本选择事件
-    handleTextSelection() {
-      const selection = window.getSelection();
-      if (selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        const selectedText = range.toString().trim();
-        
-        if (selectedText) {
-          // 保存选择的文本
-          this.selectedSupportingText = selectedText;
-          
-          // 尝试获取选择的偏移量以便高亮显示
-          const abstractContainer = document.querySelector('.abstract-container');
-          if (abstractContainer) {
-            // 计算选择在抽象文本中的位置
-            const abstractText = this.paperAbstract;
-            const selectedIndex = abstractText.indexOf(selectedText);
-            
-            if (selectedIndex !== -1) {
-              this.selectionStartOffset = selectedIndex;
-              this.selectionEndOffset = selectedIndex + selectedText.length;
-              
-              // 显示成功选择的提示
-              this.showEditFeedback('Text selected successfully', 'success', 1000);
-            }
-          }
-        }
-      }
-    },
+
     
-    // 确认支持文本并完成添加关系
-    confirmSupportingText() {
-      if (this.pendingRelationData) {
-        // 如果用户没有选择文本，显示确认对话框
-        if (!this.selectedSupportingText) {
-          this.confirmDialogTitle = 'No Supporting Text';
-          this.confirmDialogMessage = 'You are about to add a relation without any supporting text. Do you want to continue?';
-          this.showConfirmDialog = true;
-          
-          // 设置确认回调
-          this.confirmDialogCallback = () => {
-            this.addRelation(
-              this.pendingRelationData.sourceId,
-              this.pendingRelationData.targetId,
-              this.pendingRelationData.label,
-              ""
-            );
-            
-            // 如果这是新节点添加流程的一部分，显示成功消息
-            if (this.isAddingNode) {
-              this.showEditFeedback('New node and relation added successfully', 'success');
-              this.isAddingNode = false;
-              this.pendingNodeData = null;
-            } else {
-              this.showEditFeedback('Relation added successfully', 'success');
-            }
-            
-            this.cancelSupportingTextSelection();
-            this.cancelConnectionCreation();
-          };
-          
-          return;
-        }
-        
-        // 正常添加关系，并包含支持文本
-        this.addRelation(
-          this.pendingRelationData.sourceId,
-          this.pendingRelationData.targetId,
-          this.pendingRelationData.label,
-          this.selectedSupportingText
-        );
-        
-        // 显示成功提示
-        if (this.isAddingNode) {
-          this.showEditFeedback('New node and relation added with supporting text', 'success');
-          this.isAddingNode = false;
-          this.pendingNodeData = null;
-        } else {
-          this.showEditFeedback('Relation added with supporting text', 'success');
-        }
-        
-        // 清理状态
-        this.cancelSupportingTextSelection();
-        this.cancelConnectionCreation();
-      }
-    },
+
     
     // 确认对话框的确认操作
     confirmDialogAction() {
@@ -3126,30 +3119,7 @@ export default {
       this.confirmDialogCallback = null;
     },
     
-    // 取消支持文本选择
-    cancelSupportingTextSelection() {
-      this.showSupportingTextSelection = false;
-      this.selectedSupportingText = '';
-      this.selectionStartOffset = -1;
-      this.selectionEndOffset = -1;
-      this.pendingRelationData = null;
-      
-      // 不管是否在添加新节点，都取消连接创建状态
-      this.cancelConnectionCreation();
-      
-      // 如果是在创建meta-relation，也一并取消
-      if (this.isCreatingMetaRelation) {
-        this.cancelMetaRelationCreation();
-      }
-    },
-    
-    // 开始文本选择
-    startTextSelection() {
-      // 清除之前的选择
-      this.selectedSupportingText = '';
-      this.selectionStartOffset = -1;
-      this.selectionEndOffset = -1;
-    },
+
     
     // 添加startAddNode方法
     startAddNode() {
@@ -3180,82 +3150,42 @@ export default {
           return false;
         }
         
-        // 创建节点但不立即添加到图上
-        this.pendingNodeData = {
+        // 记录当前状态用于撤销操作
+        this.recordCurrentState();
+        
+        // 创建临时节点并直接添加到图中
+        const newNode = {
           id: newNodeId,
           label: newNodeId,
           x: this.width / 2, // 放在视图中央
-          y: this.height / 2
+          y: this.height / 2,
+          radius: this.calculateNodeRadius(newNodeId)
         };
         
-        // 立即开始连接创建流程
-        this.startConnectionFromNewNode();
+        // 添加到临时节点集合
+        this.temporaryNodes.add(newNodeId);
+        
+        // 添加到图数据中
+        this.graphData.nodes.push(newNode);
+        
+        // 重新渲染图
+        this.renderGraph();
+        
+        // 显示英文提示
+        this.showEditFeedback('⚠️ Temporary node added. Please create relationships to make it permanent.', 'warning');
+        
         return true;
       };
     },
     
-    // 添加从新节点开始连接的方法
-    startConnectionFromNewNode() {
-      // 记录当前状态用于撤销操作
-      this.recordCurrentState();
-      
-      // 保存冻结状态，以便在渲染后恢复
-      const wasFrozen = this.isFrozen;
-      
-      // 首先添加节点到图中以便可视化
-      this.graphData.nodes.push(this.pendingNodeData);
-      this.renderGraph(); // 重新渲染图以显示新节点
-      
-      // 模拟点击该节点以开始连接流程
-      this.isCreatingConnection = true;
-      this.sourceNode = this.pendingNodeData;
-      
-      // 添加视觉提示表明我们在连接模式
-      this.svg.style('cursor', 'crosshair');
-      
-      // 添加临时预览线
-      this.connectionPreview = this.svg.append('path')
-        .attr('class', 'preview-connection')
-        .attr('stroke', '#4a90e2')
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', '5,5')
-        .attr('fill', 'none')
-        .style('opacity', 0)
-        .attr('marker-end', 'url(#end)');
-        
-      // 添加鼠标移动处理器
-      this.svg.on('mousemove', (event) => {
-        if (this.isCreatingConnection) {
-          const [x, y] = d3.pointer(event);
-          this.updateConnectionPreview(x, y);
-        }
-      });
-      
-      // 更新节点点击处理器来选择目标
-      this.svg.selectAll('.node')
-        .style('cursor', 'pointer')
-        .on('click.connect', (event, d) => {
-          if (this.isCreatingConnection && d.id !== this.sourceNode.id) {
-            // 如果这是一个新节点连接，则设置isAddingNode标志
-            this.isAddingNode = true;
-            this.showRelationLabelDialog(d);
-          }
-        });
-      
-      // 显示连接取消按钮
-      // 已经在模板中实现了
-      
-      // 显示成功消息
-      if (wasFrozen) {
-        this.showEditFeedback('New node added. Now connect it to another node. Original graph layout preserved.', 'success');
-      } else {
-        this.showEditFeedback('New node added. Now connect it to another node.', 'success');
-      }
-    },
+
     // Add undo, redo, and history tracking methods
     recordCurrentState() {
-      // Create a deep copy of the current graph data to store in history
-      const currentState = JSON.parse(JSON.stringify(this.graphData));
+      // Create a deep copy of the current graph data and temporary nodes to store in history
+      const currentState = {
+        graphData: JSON.parse(JSON.stringify(this.graphData)),
+        temporaryNodes: new Set(this.temporaryNodes) // Create a copy of the Set
+      };
       
       // Add to history stack
       this.historyStack.push(currentState);
@@ -3282,7 +3212,8 @@ export default {
       
       // Apply previous state from history
       const previousState = this.historyStack[this.historyStack.length - 1];
-      this.graphData = JSON.parse(JSON.stringify(previousState));
+      this.graphData = JSON.parse(JSON.stringify(previousState.graphData));
+      this.temporaryNodes = new Set(previousState.temporaryNodes);
       
       // Set unsaved changes flag
       this.hasUnsavedChanges = true;
@@ -3305,7 +3236,8 @@ export default {
       this.historyStack.push(nextState);
       
       // Apply the next state
-      this.graphData = JSON.parse(JSON.stringify(nextState));
+      this.graphData = JSON.parse(JSON.stringify(nextState.graphData));
+      this.temporaryNodes = new Set(nextState.temporaryNodes);
       
       // Set unsaved changes flag
       this.hasUnsavedChanges = true;
@@ -3350,6 +3282,30 @@ export default {
       // 否则检查当前用户是否是所属用户
       return this.getQueryParam('user') === this.currentUserName;
     },
+    
+    // 检查是否可以保存（有未保存更改且不只是孤立的临时节点）
+    canSave() {
+      if (!this.hasUnsavedChanges) {
+        return false;
+      }
+      
+      // 如果有临时节点参与了关系，可以保存
+      if (this.temporaryNodes.size > 0 && this.graphData && this.graphData.relations) {
+        const tempNodesInRelations = this.graphData.relations.some(rel => 
+          this.temporaryNodes.has(rel.head) || this.temporaryNodes.has(rel.tail)
+        );
+        
+        if (tempNodesInRelations) {
+          return true;
+        }
+        
+        // 如果有临时节点但它们都没有参与关系，不能保存
+        return false;
+      }
+      
+      // 如果没有临时节点，有变更就可以保存
+      return true;
+    },
     highlightedAbstract() {
       if (!this.paperAbstract || !this.selectedRelationText) {
         return this.paperAbstract;
@@ -3364,19 +3320,7 @@ export default {
       // Replace matches with highlighted version
       return this.paperAbstract.replace(regex, '<mark>$1</mark>');
     },
-    highlightedAbstractForSelection() {
-      if (!this.paperAbstract || this.selectionStartOffset === -1 || this.selectionEndOffset === -1) {
-        return this.paperAbstract;
-      }
-      
-      // 分成三部分：选择前、选择部分、选择后
-      const beforeSelection = this.paperAbstract.substring(0, this.selectionStartOffset);
-      const selectedPortion = this.paperAbstract.substring(this.selectionStartOffset, this.selectionEndOffset);
-      const afterSelection = this.paperAbstract.substring(this.selectionEndOffset);
-      
-      // 使用更简单的标签包裹来减少布局影响
-      return `${beforeSelection}<mark class="highlighted-text">${selectedPortion}</mark>${afterSelection}`;
-    },
+
   }
 };
 </script>
@@ -3411,6 +3355,17 @@ export default {
 .node.connected text {
   fill: #3498DB !important;
   font-weight: bold;
+}
+
+/* Temporary nodes */
+.node.temporary text {
+  fill: #2196F3 !important;
+  font-weight: bold;
+}
+
+/* Temporary node underline */
+.temporary-underline {
+  pointer-events: none;
 }
 
 .node.dimmed {
@@ -3707,8 +3662,9 @@ svg .nodes .node circle {
 }
 
 .edit-feedback.warning {
-  background-color: #f39c12;
-  color: #1e1e1e;
+  background-color: #ffc107;
+  color: #212529;
+  border-left: 4px solid #ff9800;
 }
 
 @keyframes fadeIn {
@@ -3841,118 +3797,7 @@ mark:hover {
   background-color: #e74c3c;
 }
 
-/* 添加支持文本选择相关样式 */
-.supporting-text-window {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80%;
-  max-width: 800px;
-  height: 80%;
-  max-height: 600px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 1001;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
 
-.text-selection-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  background-color: #4a90e2;
-  color: white;
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
-}
-
-.text-selection-title {
-  font-size: 18px;
-  font-weight: 500;
-}
-
-.text-selection-content {
-  flex: 1;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.text-selection-relation-info {
-  text-align: center;
-  margin-bottom: 10px;
-  font-size: 15px;
-  color: #333;
-  padding: 6px;
-  background-color: #f1f8ff;
-  border-radius: 4px;
-  border: 1px dashed #4a90e2;
-}
-
-.abstract-container {
-  flex: 1;
-  padding: 12px;
-  background-color: #ffffff; /* 修改为纯白色背景 */
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-bottom: 12px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  user-select: text;
-}
-
-.text-selection-instruction {
-  text-align: center;
-  color: #666;
-  margin-bottom: 16px;
-  font-style: italic;
-}
-
-.text-selection-feedback {
-  text-align: center;
-  color: #27ae60;
-  margin-bottom: 16px;
-  font-weight: 500;
-}
-
-.selection-indicator {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  background-color: #27ae60;
-  color: white;
-  border-radius: 50%;
-  text-align: center;
-  line-height: 20px;
-  margin-right: 4px;
-}
-
-.text-selection-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-/* 高亮文本样式 */
-.highlighted-text {
-  background-color: rgba(255, 165, 0, 0.35); /* 浅橙色背景 */
-  border-radius: 2px;
-  display: inline; /* 确保不影响文本流 */
-  padding: 0; /* 移除内边距防止文本位置移动 */
-  font-weight: normal; /* 保持原有字体粗细，不改变字体特性 */
-  box-shadow: none; /* 移除阴影，防止影响布局 */
-  color: inherit; /* 保持原有文本颜色 */
-  text-shadow: none; /* 移除文本阴影 */
-  white-space: pre-wrap; /* 保持原有的空白符处理 */
-  pointer-events: auto; /* 允许鼠标事件 */
-  transition: background-color 0.2s; /* 平滑过渡效果 */
-}
 
 .dialog p.confirm-message {
   margin-bottom: 16px;
