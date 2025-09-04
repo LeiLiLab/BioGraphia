@@ -1,20 +1,10 @@
 # BioGraphia
 
-You can try BioGraphia on [link](https://biographia.share.zrok.io/#/). We disabled login for the demo version.
+You can try BioGraphia on [this live demo](https://jg0gydh6ac6e.share.zrok.io). Please use one of the following credentials to login:
 
-## Configuration
-Create a .env file in the root directory and set the following variables:
+- **Admin user**: Username: `Admin`, Password: `123456`
+- **Test user**: Username: `test`, Password: `test`
 
-```
-
-OPENAI_API_KEY= [YOUR_API_KEY_HERE]
-OPENAI_ANALYSIS_MODEL=o1
-OPENAI_JSON_MODEL=gpt-4o
-
-VITE_SERVER_HOST=localhost
-VITE_BACKEND_PORT=3000 # Backend Port
-VITE_FRONTEND_PORT=9000 # Frontend Port
-```
 
 ## Installation
 
@@ -33,6 +23,18 @@ VITE_FRONTEND_PORT=9000 # Frontend Port
    ```
    npm install
    ```
+4. Create a .env file in the root directory and set the following variables:
+
+```
+
+OPENAI_API_KEY= [YOUR_API_KEY_HERE]
+OPENAI_ANALYSIS_MODEL=o1
+OPENAI_JSON_MODEL=gpt-4o
+
+VITE_SERVER_HOST=localhost
+VITE_BACKEND_PORT=3000 # Backend Port
+VITE_FRONTEND_PORT=9000 # Frontend Port
+```
 
 ## Running the Application
 
@@ -42,7 +44,7 @@ the application can be started with a single command:
 python start.py
 ```
 
-Run the application in standalone mode:
+Run the application in standalone mode for demo:
 
 ```
 python start.py --standalone
